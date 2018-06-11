@@ -214,6 +214,7 @@ contains   !|
         integer :: sample_index, t_step
         real(PRECISION) :: err
         character(len=180) :: msg
+        character(len=30) :: step_to_string, err_to_string
           
         !* 初始化
         call this % init( caller_name, X, t )
@@ -240,10 +241,12 @@ contains   !|
             
             call this % get_total_error(t, y, err)
             
-            !* undo：输出信息，便于知道进展
-            !* write(*,*) "xxxx"
-            !* call LogInfo("xxxx")
-            write(*, *) "t_step = ", t_step, ",  err = ", err
+
+            write(UNIT=step_to_string, FMT='(I15)') t_step
+            write(UNIT=err_to_string, FMT='(ES16.5)') err
+            msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
+                ",  err = " // TRIM(ADJUSTL(err_to_string))
+            call LogInfo(msg)
 
             if (err < this % error_avg) then
                 exit

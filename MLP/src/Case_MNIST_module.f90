@@ -24,7 +24,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     logical, private :: is_allocate_done = .false.
     
     !* 训练集样本数量，最大是60000
-    integer, public :: count_train_sample = 60000
+    integer, public :: count_train_sample = 100
     
     !* 测试集样本数量，最大是10000
     integer, public :: count_test_sample = 5000
