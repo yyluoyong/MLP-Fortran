@@ -46,7 +46,7 @@ implicit none
     implicit none
         character(len=*), intent(in) :: info
 
-        write(*, *) info
+        write(*, *) TRIM(ADJUSTL(info))
         call m_outputStr( infoFileName, info )
 
         return

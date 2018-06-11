@@ -239,25 +239,25 @@ contains   !|
                     call this % accumulation_BP_update()
             end if
             
-            !call this % get_total_error(t, y, err)        
-            !
-            !write(UNIT=step_to_string, FMT='(I15)') t_step
-            !write(UNIT=err_to_string, FMT='(ES16.5)') err
-            !msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
-            !    ",  err = " // TRIM(ADJUSTL(err_to_string))
-            !call LogInfo(msg)
-            !
-            !if (err < this % error_avg) then
-            !    exit
-            !end if
-            
-            call m_get_accuracy(t, y, err)  
+            call this % get_total_error(t, y, err)        
             
             write(UNIT=step_to_string, FMT='(I15)') t_step
             write(UNIT=err_to_string, FMT='(ES16.5)') err
             msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
-                ",  acc = " // TRIM(ADJUSTL(err_to_string))
+                ",  err = " // TRIM(ADJUSTL(err_to_string))
             call LogInfo(msg)
+            
+            if (err < this % error_avg) then
+                exit
+            end if
+            
+            !call m_get_accuracy(t, y, err)  
+            !
+            !write(UNIT=step_to_string, FMT='(I15)') t_step
+            !write(UNIT=err_to_string, FMT='(ES16.5)') err
+            !msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
+            !    ",  acc = " // TRIM(ADJUSTL(err_to_string))
+            !call LogInfo(msg)
      
         end do
         

@@ -3,13 +3,15 @@ use mod_Log
 use mod_Precision
 use mod_NNTrain
 use mod_MNISTCase
+use mod_SinCase
 implicit none
     
     type(MNISTCase), pointer :: my_MNISTCase
+    type(SinCase), pointer :: my_SinCase
     
-    allocate( my_MNISTCase ) 
+    allocate( my_SinCase ) 
     
-    call my_MNISTCase % main()
+    call my_SinCase % main()
 
     !real(PRECISION), dimension(:,:), allocatable :: X, t, y
     !integer, parameter :: SAMPLE_COUNT = 201

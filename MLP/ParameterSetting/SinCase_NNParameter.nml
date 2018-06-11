@@ -15,6 +15,6 @@
 HIDDEN_LAYERS_COUNT = 1
 TRAIN_STEP          = 2000000
 ERROR_SINGLE        = 0.001
-ERROR_AVG           = 0.005
+ERROR_AVG           = 0.001
 BP_ALGORITHM        = 'standard'
 /
