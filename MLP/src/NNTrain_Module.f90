@@ -239,18 +239,25 @@ contains   !|
                     call this % accumulation_BP_update()
             end if
             
-            call this % get_total_error(t, y, err)
+            !call this % get_total_error(t, y, err)        
+            !
+            !write(UNIT=step_to_string, FMT='(I15)') t_step
+            !write(UNIT=err_to_string, FMT='(ES16.5)') err
+            !msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
+            !    ",  err = " // TRIM(ADJUSTL(err_to_string))
+            !call LogInfo(msg)
+            !
+            !if (err < this % error_avg) then
+            !    exit
+            !end if
             
-
+            call m_get_accuracy(t, y, err)  
+            
             write(UNIT=step_to_string, FMT='(I15)') t_step
             write(UNIT=err_to_string, FMT='(ES16.5)') err
             msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
-                ",  err = " // TRIM(ADJUSTL(err_to_string))
+                ",  acc = " // TRIM(ADJUSTL(err_to_string))
             call LogInfo(msg)
-
-            if (err < this % error_avg) then
-                exit
-            end if
      
         end do
         
@@ -306,6 +313,38 @@ contains   !|
              
         return
     end subroutine m_get_total_error
+    !====
+    
+    !* 计算正确率
+    subroutine m_get_accuracy( t, y, acc )
+    implicit none
+        real(PRECISION), dimension(:,:), intent(in) :: t
+        real(PRECISION), dimension(:,:), intent(in) :: y
+        real(PRECISION), intent(inout) :: acc
+    
+        integer :: y_shape(2), i, tag, min_index_t, min_index_y
+        real(PRECISION) :: y_label(0:10), y_tmp(0:10)  
+        
+        y_label = (/ 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 /)
+        
+        y_shape = SHAPE(y)
+        
+        tag = 0
+        do i=1, y_shape(2)
+            if (abs(t(1,i) - y(1,i)) <= 0.05) then
+                tag = tag + 1
+            end if
+            !y_tmp = abs(y_label - y(i))
+            !min_index_y = MAXLOC(y_tmp)
+            !
+            !y_tmp = abs(y_label - y(i))
+            !min_index_y = MAXLOC(y_tmp)
+        end do
+        
+        acc = 1.0 * tag / y_shape(2)
+        
+        return
+    end subroutine m_get_accuracy
     !====
 
     !* 标准BP算法.

@@ -85,6 +85,9 @@ contains   !|
         
         call this % load_MNIST_data()
         
+        this % X_train = ( this % X_train ) / 256.0
+        this % y_train = ( this % y_train ) / 9.0
+        
         call this % my_NNTrain % train('MNISTCase', this % X_train, &
             this % y_train, y)
         
@@ -122,10 +125,12 @@ contains   !|
 
         integer(kind=4) :: magic_number, sample_count, row, column
         integer(kind=4) :: label, pixel
+        integer(kind=4) , dimension(:,:), allocatable :: data_array_int4
         integer :: data_shape(2)
         integer :: i, j
     
         data_shape = SHAPE(data_array)
+        allocate( data_array_int4(data_shape(1), data_shape(2)) )
         
         open(UNIT=30, FILE=file_name, &
             ACCESS='stream', FORM='unformatted', STATUS='old')
@@ -140,7 +145,7 @@ contains   !|
                 stop
             end if
             
-            read(30) ((data_array(i,j), i=1, data_shape(1)), j=1, data_shape(2)) 
+            read(30) ((data_array_int4(i,j), i=1, data_shape(1)), j=1, data_shape(2)) 
             
         else if (data_shape(1) == this % sample_point_X) then 
             !* ∂¡»° image
@@ -152,7 +157,7 @@ contains   !|
                 stop
             end if
             
-            read(30) ((data_array(i,j), i=1, data_shape(1)), j=1, data_shape(2)) 
+            read(30) ((data_array_int4(i,j), i=1, data_shape(1)), j=1, data_shape(2)) 
         
         else
             call LogErr("MNISTCase: SUBROUTINE m_read_MNIST_data_from_file.")
@@ -160,6 +165,10 @@ contains   !|
         end if
 
         close(30)
+        
+        data_array = data_array_int4
+        
+        deallocate( data_array_int4 )
         
         return
     end subroutine m_read_MNIST_data_from_file
