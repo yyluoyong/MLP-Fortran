@@ -24,7 +24,7 @@ end type BaseActivationFunction
     
 
 !------------------
-! 抽象类：激活函数 |
+! 抽象类：函数接口 |
 !------------------	
 abstract interface   
 

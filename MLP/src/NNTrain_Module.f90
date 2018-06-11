@@ -13,37 +13,6 @@ implicit none
 !---------------------------------
 type, public :: NNTrain
 
-    ! 是否初始化完成的标识
-    logical, private :: is_init = .false.
-        
-    ! 是否初始化内存空间
-    logical, private :: is_allocate_done = .false.
-    
-    !* 网络参数信息    
-    character(len=180), private :: NNParameter_file = &
-        './ParameterSetting/NNParameter.nml'
-        
-    !* 隐藏层每层结点数目的数组
-    character(len=180), private :: NNLayerNodeCount_file = &
-        './ParameterSetting/NNHiddenLayerNodeCount.parameter'
-        
-    !* 每层的权值学习速率、阈值学习速率
-    character(len=180), private :: NNLearningRate_file = &
-        './ParameterSetting/NNLearningRate.parameter'
-    
-    !* 每层的激活函数s
-    character(len=180), private :: NNActivationFunctionList_file = &
-        './ParameterSetting/NNActivationFunctionList.parameter'    
-    
-    !* 激活函数列表
-    character(len=20), dimension(:), allocatable, private :: act_fun_name_list
-        
-    !* 训练步数
-    integer, public :: train_step
-    
-    !* 使用的BP训练算法
-    character(len=20), private :: bp_algorithm
-    
     !* 单个样本的误差阈值
     real(kind=PRECISION), public :: error_single
     !* 全部样本的平均误差阈值
@@ -69,6 +38,45 @@ type, public :: NNTrain
     !* 训练数据对应的目标值，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y
     
+    
+    
+    !* 调用者标识，可用于读取指定的配置信息等。
+    character(len=180), private :: caller_name = ''
+
+    ! 是否初始化完成的标识
+    logical, private :: is_init = .false.
+        
+    ! 是否初始化内存空间
+    logical, private :: is_allocate_done = .false.
+    
+    character(len=180), private :: NNParameter_path = &
+        './ParameterSetting/'
+    
+    !* 网络参数信息    
+    character(len=180), private :: NNParameter_file = &
+        './ParameterSetting/NNParameter.nml'
+        
+    !* 隐藏层每层结点数目的数组
+    character(len=180), private :: NNLayerNodeCount_file = &
+        './ParameterSetting/NNHiddenLayerNodeCount.parameter'
+        
+    !* 每层的权值学习速率、阈值学习速率
+    character(len=180), private :: NNLearningRate_file = &
+        './ParameterSetting/NNLearningRate.parameter'
+    
+    !* 每层的激活函数s
+    character(len=180), private :: NNActivationFunctionList_file = &
+        './ParameterSetting/NNActivationFunctionList.parameter'    
+        
+    !* 激活函数列表
+    character(len=20), dimension(:), allocatable, private :: act_fun_name_list
+        
+    !* 训练步数
+    integer, public :: train_step
+    
+    !* 使用的BP训练算法
+    character(len=20), private :: bp_algorithm
+    
     !* 网络结构
     type(NNStructure), pointer, private :: my_NNStructure
     
@@ -89,6 +97,7 @@ contains   !|
     procedure, private :: allocate_memory   => m_allocate_memory
     procedure, private :: deallocate_memory => m_deallocate_memory
     
+    procedure, private :: init_NNParameter                => m_init_NNParameter
     procedure, private :: load_NNParameter                => m_load_NNParameter
     procedure, private :: load_NNParameter_array          => m_load_NNParameter_array
     procedure, private :: load_NNActivation_Function_List => m_load_NNActivation_Function_List
@@ -111,6 +120,7 @@ end type NNTrain
     private :: m_allocate_memory
     private :: m_deallocate_memory
     
+    private :: m_init_NNParameter
     private :: m_load_NNParameter
     private :: m_load_NNParameter_array
     private :: m_load_NNActivation_Function_List
@@ -124,9 +134,11 @@ contains   !|
     !* (1). 从文件中读取网络参数、训练参数;
     !* (2). 申请内存空间;
     !* (3). 初始化网络结构.
-    subroutine m_init( this, X, y )
+    subroutine m_init( this, caller_name, X, y )
     implicit none
         class(NNTrain), intent(inout) :: this
+        !* 调用者信息，值可以为 ''，此时使用默认配置信息
+        character(len=*), intent(in) :: caller_name
         real(PRECISION), dimension(:,:), intent(in) :: X
         real(PRECISION), dimension(:,:), intent(in) :: y
 
@@ -136,6 +148,9 @@ contains   !|
         integer :: i
         
         if( .not. this % is_init ) then
+        
+            this % caller_name = caller_name
+            call this % init_NNParameter(caller_name)
         
             !* 从文件读取参数信息
             call this % load_NNParameter()          
@@ -186,9 +201,11 @@ contains   !|
     !====
 
     !* 训练函数
-    subroutine m_train( this, X, t, y )
+    subroutine m_train( this, caller_name, X, t, y )
     implicit none
         class(NNTrain), intent(inout) :: this
+        !* 调用者信息，值可以为 ''，此时使用默认配置信息
+        character(len=*), intent(in) :: caller_name
         !* X 是输入值，t 是实际输出，y 是网络预测输出
         real(PRECISION), dimension(:,:), intent(in) :: X
         real(PRECISION), dimension(:,:), intent(in) :: t
@@ -199,7 +216,7 @@ contains   !|
         character(len=180) :: msg
           
         !* 初始化
-        call this % init( X, t )
+        call this % init( caller_name, X, t )
         
         do t_step=1, this % train_step
         
@@ -364,6 +381,42 @@ contains   !|
         return
     end subroutine m_accumulation_BP_update
     !====  
+    
+    !* 初始化各参数文件的完整路径
+    subroutine m_init_NNParameter( this, caller_name )
+    implicit none
+        class(NNTrain), intent(inout) :: this
+        !* 调用者信息，值可以为 ''，此时使用默认配置信息
+        character(len=*), intent(in) :: caller_name
+        
+        if (caller_name /= '') then
+            this % NNParameter_file = &
+                TRIM(ADJUSTL(this % NNParameter_path)) // &
+                TRIM(ADJUSTL(caller_name)) // '_' // &
+                'NNParameter.nml'
+                
+            this % NNLayerNodeCount_file = &
+                TRIM(ADJUSTL(this % NNParameter_path)) // &
+                TRIM(ADJUSTL(caller_name)) // '_' // &
+                'NNHiddenLayerNodeCount.parameter'
+                
+            this % NNLearningRate_file = &
+                TRIM(ADJUSTL(this % NNParameter_path)) // &
+                TRIM(ADJUSTL(caller_name)) // '_' // &
+                'NNLearningRate.parameter'
+                
+            this % NNActivationFunctionList_file = &
+                TRIM(ADJUSTL(this % NNParameter_path)) // &
+                TRIM(ADJUSTL(caller_name)) // '_' // &
+                'NNActivationFunctionList.parameter'
+        end if
+    
+        call LogDebug("NNTrain: SUBROUTINE m_init_NNParameter")
+        
+        return
+    end subroutine
+    !====
+    
     
     !* 读取网络的参数
     subroutine m_load_NNParameter( this )
