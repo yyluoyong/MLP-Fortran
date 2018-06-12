@@ -212,9 +212,10 @@ contains   !|
         real(PRECISION), dimension(:,:), intent(inout) :: y
         
         integer :: sample_index, t_step
-        real(PRECISION) :: err
+        real(PRECISION) :: err, acc
         character(len=180) :: msg
-        character(len=30) :: step_to_string, err_to_string
+        character(len=30) :: step_to_string, err_to_string, &
+            acc_to_string
           
         !* ≥ı ºªØ
         call this % init( caller_name, X, t )
@@ -240,11 +241,14 @@ contains   !|
             end if
             
             call this % get_total_error(t, y, err)        
+            call m_get_accuracy(t, y, acc)  
             
             write(UNIT=step_to_string, FMT='(I15)') t_step
             write(UNIT=err_to_string, FMT='(ES16.5)') err
+            write(UNIT=acc_to_string, FMT='(F8.5)') acc
             msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
-                ",  err = " // TRIM(ADJUSTL(err_to_string))
+                ",  err = " // TRIM(ADJUSTL(err_to_string)) // &
+                ",  acc = " // TRIM(ADJUSTL(acc_to_string))
             call LogInfo(msg)
             
             if (err < this % error_avg) then
@@ -322,23 +326,19 @@ contains   !|
         real(PRECISION), dimension(:,:), intent(in) :: y
         real(PRECISION), intent(inout) :: acc
     
-        integer :: y_shape(2), i, tag, min_index_t, min_index_y
-        real(PRECISION) :: y_label(0:10), y_tmp(0:10)  
-        
-        y_label = (/ 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 /)
+        integer :: y_shape(2), j, tag
+        integer :: max_index_t(1), max_index_y(1)
         
         y_shape = SHAPE(y)
         
         tag = 0
-        do i=1, y_shape(2)
-            if (abs(t(1,i) - y(1,i)) <= 0.05) then
+        do j=1, y_shape(2)
+            max_index_t = MAXLOC(ABS(t(:,j)))
+            max_index_y = MAXLOC(ABS(y(:,j)))
+            
+            if (max_index_t(1) /= max_index_y(1)) then
                 tag = tag + 1
             end if
-            !y_tmp = abs(y_label - y(i))
-            !min_index_y = MAXLOC(y_tmp)
-            !
-            !y_tmp = abs(y_label - y(i))
-            !min_index_y = MAXLOC(y_tmp)
         end do
         
         acc = 1.0 * tag / y_shape(2)

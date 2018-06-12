@@ -24,7 +24,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     logical, private :: is_allocate_done = .false.
     
     !* 训练集样本数量，最大是60000
-    integer, public :: count_train_sample = 100
+    integer, public :: count_train_sample = 10000
     
     !* 测试集样本数量，最大是10000
     integer, public :: count_test_sample = 5000
@@ -86,7 +86,7 @@ contains   !|
         call this % load_MNIST_data()
         
         this % X_train = ( this % X_train ) / 256.0
-        this % y_train = ( this % y_train ) / 9.0
+        !this % y_train = ( this % y_train ) / 9.0
         
         call this % my_NNTrain % train('MNISTCase', this % X_train, &
             this % y_train, y)
