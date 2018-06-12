@@ -31,7 +31,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     
     !* 单个样本的数据量: 28 ×28 = 784
     integer, public :: sample_point_X = 784
-    integer, public :: sample_point_y = 1
+    integer, public :: sample_point_y = 10
     
     !* 训练数据，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: X_train
@@ -130,12 +130,14 @@ contains   !|
         integer :: i, j
     
         data_shape = SHAPE(data_array)
-        allocate( data_array_int4(data_shape(1), data_shape(2)) )
-        
+      
         open(UNIT=30, FILE=file_name, &
             ACCESS='stream', FORM='unformatted', STATUS='old')
         
         if (data_shape(1) == this % sample_point_y) then 
+        
+            allocate( data_array_int4(1, data_shape(2)) )
+            
             !* 读取 label
             read(30) magic_number, sample_count
             
@@ -145,9 +147,25 @@ contains   !|
                 stop
             end if
             
-            read(30) ((data_array_int4(i,j), i=1, data_shape(1)), j=1, data_shape(2)) 
+            read(30) (data_array_int4(1,j), j=1, data_shape(2)) 
+
+            !* label的取值范围是：0-9
+            !* 将data_array转换成one-hot形式，即：
+            !* label = 0 --> [1,0,0,0,0,0,0,0,0,0]
+            !* label = 1 --> [0,1,0,0,0,0,0,0,0,0]
+            !* 以此类推 ... 
+            !* label = 9 --> [0,0,0,0,0,0,0,0,0,1]
+            data_array = 0
+            do j=1, data_shape(2)
+                data_array(data_array_int4(1,j)+1, j) = 1.0
+            end do
             
-        else if (data_shape(1) == this % sample_point_X) then 
+            deallocate( data_array_int4 )
+            
+        else if (data_shape(1) == this % sample_point_X) then   
+        
+            allocate( data_array_int4(data_shape(1), data_shape(2)) )
+        
             !* 读取 image
             read(30) magic_number, sample_count, row, column
             
@@ -158,17 +176,16 @@ contains   !|
             end if
             
             read(30) ((data_array_int4(i,j), i=1, data_shape(1)), j=1, data_shape(2)) 
-        
+            
+            data_array = data_array_int4
+
+            deallocate( data_array_int4 )
         else
             call LogErr("MNISTCase: SUBROUTINE m_read_MNIST_data_from_file.")
             stop
         end if
 
         close(30)
-        
-        data_array = data_array_int4
-        
-        deallocate( data_array_int4 )
         
         return
     end subroutine m_read_MNIST_data_from_file

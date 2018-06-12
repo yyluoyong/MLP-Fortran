@@ -9,9 +9,11 @@ implicit none
     type(MNISTCase), pointer :: my_MNISTCase
     type(SinCase), pointer :: my_SinCase
     
-    allocate( my_SinCase ) 
+    !allocate( my_SinCase )     
+    !call my_SinCase % main()
     
-    call my_SinCase % main()
+    allocate( my_MNISTCase )     
+    call my_MNISTCase % main()
 
     !real(PRECISION), dimension(:,:), allocatable :: X, t, y
     !integer, parameter :: SAMPLE_COUNT = 201
