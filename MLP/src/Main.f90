@@ -4,16 +4,21 @@ use mod_Precision
 use mod_NNTrain
 use mod_MNISTCase
 use mod_SinCase
+use mod_MoonCase
 implicit none
     
     type(MNISTCase), pointer :: my_MNISTCase
     type(SinCase), pointer :: my_SinCase
+    type(MoonCase), pointer :: my_MoonCase
     
     !allocate( my_SinCase )     
     !call my_SinCase % main()
     
-    allocate( my_MNISTCase )     
-    call my_MNISTCase % main()
+    !allocate( my_MNISTCase )     
+    !call my_MNISTCase % main()
+    
+    allocate( my_MoonCase )     
+    call my_MoonCase % main()
 
     !real(PRECISION), dimension(:,:), allocatable :: X, t, y
     !integer, parameter :: SAMPLE_COUNT = 201
