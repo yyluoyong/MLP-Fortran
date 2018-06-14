@@ -3,11 +3,12 @@ use mod_Precision
 use mod_Log
 use mod_BaseCalculationCase
 use mod_NNTrain
+use mod_Tools
 implicit none    
 
-!------------------------------
-! 工作类：MNIST数据集计算算例 |
-!------------------------------
+!-------------------
+! 工作类：正弦函数 |
+!-------------------
 type, extends(BaseCalculationCase), public :: SinCase
     !* 继承自BaseCalculationCase并实现其接口
     
@@ -28,6 +29,8 @@ type, extends(BaseCalculationCase), public :: SinCase
     real(kind=PRECISION), dimension(:,:), allocatable, public :: X_train
     !* 训练数据对应的目标值，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train
+    !* 预测结果
+    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_pre
     
     !* 测试数据，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: X_test
@@ -43,6 +46,7 @@ contains   !|
     procedure, public :: main => m_main
 
     procedure, private :: init_train_data   => m_init_train_data
+    procedure, private :: output_data       => m_output_data
     procedure, private :: allocate_memory   => m_allocate_memory
     procedure, private :: deallocate_memory => m_deallocate_memory
     final :: SinCase_clean_space
@@ -53,6 +57,7 @@ end type SinCase
     !-------------------------
     private :: m_main
     private :: m_init_train_data
+    private :: m_output_data
     private :: m_allocate_memory
     private :: m_deallocate_memory
     !-------------------------
@@ -66,17 +71,15 @@ contains   !|
     implicit none
         class(SinCase), intent(inout) :: this
     
-        real(kind=PRECISION), dimension(:,:), allocatable :: y
-    
         call this % allocate_memory()
         
         call this % init_train_data()
         
-        allocate( y, SOURCE = this % y_train)
-        
         call this % my_NNTrain % train('SinCase', this % X_train, &
-            this % y_train, y)
+            this % y_train, this % y_pre)
         
+        call this % output_data()
+            
         return
     end subroutine m_main
     !====
@@ -91,19 +94,19 @@ contains   !|
         
         PI = 4 * ATAN(1.0)
         
-        associate ( &
+        associate (                                          &
             count_train_sample => this % count_train_sample, &
             X_train            => this % X_train,            &
             y_train            => this % y_train             &
         )
         
-        dx = 2.0 / (count_train_sample - 1)
+        dx = 1.0 / (count_train_sample - 1)
         do i=1, count_train_sample
-            X_train(1, i) = -1 + (i-1) * dx
-            y_train(1, i) = SIN(X_train(1, i))
+            X_train(1, i) = (i-1) * dx
+            y_train(1, i) = SIN(2 * PI * X_train(1, i))
         end do
         
-        y_train = 0.5 * (y_train + 1)
+        y_train = 0.25 * (y_train + 1)
         
         end associate
     
@@ -111,6 +114,41 @@ contains   !|
     end subroutine m_init_train_data
     !====
 
+        !* 输出计算数据
+    subroutine m_output_data( this )
+    implicit none
+        class(SinCase), intent(inout) :: this
+    
+        real(kind=PRECISION), dimension(:), allocatable :: Y_err
+        integer :: i, j
+            
+        associate (                                          &
+            count_train_sample => this % count_train_sample, &
+            X_train            => this % X_train,            &
+            y_train            => this % y_train,            &
+            y_pre              => this % y_pre               &
+        )
+        
+        allocate( Y_err(count_train_sample) )
+      
+        
+        Y_err = abs(y_train(1,:) - y_pre(1,:))
+        
+        call output_tecplot_line(                        &                       
+            './Output/SinCase/result.plt',               &
+            'X', X_train(1,:), 'Sin_True', y_train(1,:), &
+            'Sin_Pre', y_pre(1,:), 'Sin_Err', Y_err      &
+        )
+            
+        deallocate(Y_err)
+            
+        end associate
+               
+        return
+    end subroutine m_output_data
+    !====
+    
+    
     !* 申请内存空间
     subroutine m_allocate_memory( this )
     implicit none
@@ -125,6 +163,7 @@ contains   !|
         
         allocate( this % X_train(sample_point_X, count_train_sample) )        
         allocate( this % y_train(sample_point_y, count_train_sample) )
+        allocate( this % y_pre(sample_point_y, count_train_sample) )
         
         allocate( this % X_test(sample_point_X, count_test_sample) )
         allocate( this % y_test(sample_point_y, count_test_sample) )       
@@ -149,6 +188,7 @@ contains   !|
         
         deallocate( this % X_train )        
         deallocate( this % y_train )
+        deallocate( this % y_pre )
         
         deallocate( this % X_test )
         deallocate( this % y_test )    

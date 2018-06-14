@@ -104,6 +104,7 @@ contains   !|
         
         do j=1, X_shape(2)
             X(1, j) = (X(1, j) - min_x) / (max_x - min_x)
+            X(1, j) = 2 * X(1, j) - 1
         end do
 
         min_x = MINVAL(X(2,:))
@@ -111,6 +112,7 @@ contains   !|
         
         do j=1, X_shape(2)
             X(2, j) = (X(2, j) - min_x) / (max_x - min_x)
+            X(2, j) = 2 * X(2, j) - 1
         end do
         
         

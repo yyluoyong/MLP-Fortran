@@ -306,12 +306,16 @@ contains   !|
         real(PRECISION), dimension(:,:), intent(in) :: y
         real(PRECISION), intent(inout) :: err
         
-        integer :: t_shape(2)        
+        integer :: t_shape(2)   
+        real(PRECISION) :: max_err
         
         t_shape = SHAPE(t)
         
         err = SUM(ABS(t - y))
         err = err / t_shape(2)
+        
+        max_err = MAXVAL(ABS(t - y))
+        write(*, *) 'max_err = ', max_err
         
         call LogDebug("NNTrain: SUBROUTINE m_get_total_error")
              

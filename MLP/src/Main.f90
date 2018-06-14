@@ -16,8 +16,8 @@ implicit none
     type(SinXYCase), pointer :: my_SinXYCase
     type(Sin2DCase), pointer :: my_Sin2DCase
     
-    call test_output_tecplot_line()
-    call test_output_tecplot_2D()
+    !call test_output_tecplot_line()
+    !call test_output_tecplot_2D()
     
     !allocate( my_SinCase )     
     !call my_SinCase % main()
@@ -25,8 +25,8 @@ implicit none
     !allocate( my_MNISTCase )     
     !call my_MNISTCase % main()
     
-    !allocate( my_MoonCase )     
-    !call my_MoonCase % main()
+    allocate( my_MoonCase )     
+    call my_MoonCase % main()
     
     !allocate( my_SinXYCase )     
     !call my_SinXYCase % main()

@@ -1,9 +1,9 @@
-tanh
-tanh
-tanh
-tanh
-tanh
-tanh
+PReLU
+PReLU
+sigmod
+sigmod
+sigmod
+sigmod
 
 
 !---------------------------------------------------------------------------!

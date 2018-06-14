@@ -4,7 +4,7 @@ use mod_BaseActivationFunction
 implicit none    
 
 	!* undo: 从文件中读取 ELU 的参数 
-	real(PRECISION), parameter :: ELU_ALPHA = 0.1
+	real(PRECISION), parameter :: ELU_ALPHA = 0.3
 
 !-------------------
 ! 工作类：激活函数 |
