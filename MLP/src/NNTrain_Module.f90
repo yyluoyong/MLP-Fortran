@@ -279,6 +279,7 @@ contains   !|
         real(PRECISION), dimension(:,:), intent(out) :: y
         
         integer :: sample_index
+        real(PRECISION) :: err, acc
         
         if( .not. this % is_init ) then
             call LogErr("NNTrain: SUBROUTINE m_sim, &
@@ -292,6 +293,8 @@ contains   !|
         
         !* undo：根据已有的 t，预测的 y，计算误差等等.
         !* call this % get_error(t, y)
+        call m_get_accuracy(t, y, acc) 
+        write(*, *) "Sim acc = ", acc
         
         return
     end subroutine m_sim

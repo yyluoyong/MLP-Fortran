@@ -24,7 +24,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     logical, private :: is_allocate_done = .false.
     
     !* 训练集样本数量，最大是60000
-    integer, public :: count_train_sample = 30
+    integer, public :: count_train_sample = 10000
     
     !* 测试集样本数量，最大是10000
     integer, public :: count_test_sample = 5000
@@ -37,11 +37,15 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     real(kind=PRECISION), dimension(:,:), allocatable, public :: X_train
     !* 训练数据对应的目标值，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train
+    !* 训练数据的预测结果
+    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train_pre
     
     !* 测试数据，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: X_test
     !* 测试数据对应的目标值，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y_test
+    !* 测试数据的预测结果
+    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_test_pre
     
     type(NNTrain), pointer :: my_NNTrain
     
@@ -81,16 +85,29 @@ contains   !|
     
         call this % allocate_memory()
         
-        allocate( y, SOURCE = this % y_train)
-        
         call this % load_MNIST_data()
         
-        this % X_train = ( this % X_train ) / 128.0 - 1
-        !this % y_train = ( this % y_train ) / 9.0
+        associate (                            &
+            X_train     => this % X_train,     &
+            y_train     => this % y_train,     &
+            y_train_pre => this % y_train_pre, &
+            X_test      => this % X_test,      &
+            y_test      => this % y_test,      &
+            y_test_pre  => this % y_test_pre   &              
+        )
         
-        call this % my_NNTrain % train('MNISTCase', this % X_train, &
-            this % y_train, y)
         
+        X_train = ( X_train ) / 128.0 - 1
+        
+        call this % my_NNTrain % train('MNISTCase', X_train, &
+            y_train, y_train_pre)
+        
+        call this % my_NNTrain % sim(X_test, &
+            y_test, y_test_pre)
+        
+            
+        end associate
+            
         return
     end subroutine m_main
     !====
@@ -196,18 +213,20 @@ contains   !|
     implicit none
         class(MNISTCase), intent(inout) :: this
         
-        associate ( &
-                sample_point_X     => this % sample_point_X,     &
-                sample_point_y     => this % sample_point_y,     &
-                count_train_sample => this % count_train_sample, &
-                count_test_sample  => this % count_test_sample   &              
+        associate (                                          &
+            sample_point_X     => this % sample_point_X,     &
+            sample_point_y     => this % sample_point_y,     &
+            count_train_sample => this % count_train_sample, &
+            count_test_sample  => this % count_test_sample   &              
         )
         
         allocate( this % X_train(sample_point_X, count_train_sample) )        
         allocate( this % y_train(sample_point_y, count_train_sample) )
+        allocate( this % y_train_pre(sample_point_y, count_train_sample) )
         
         allocate( this % X_test(sample_point_X, count_test_sample) )
-        allocate( this % y_test(sample_point_y, count_test_sample) )       
+        allocate( this % y_test(sample_point_y, count_test_sample) ) 
+        allocate( this % y_test_pre(sample_point_y, count_test_sample) ) 
         
         end associate
         
@@ -229,9 +248,11 @@ contains   !|
         
         deallocate( this % X_train )        
         deallocate( this % y_train )
+        deallocate( this % y_train_pre )
         
         deallocate( this % X_test )
         deallocate( this % y_test )    
+        deallocate( this % y_test_pre )    
         
         deallocate( this % my_NNTrain )
         
