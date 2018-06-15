@@ -243,6 +243,7 @@ contains   !|
         
         do layer_index=1, l_count
             call RANDOM_NUMBER(this % pt_W(layer_index) % W)
+            this % pt_W(layer_index) % W = 2.0 * this % pt_W(layer_index) % W - 1
         end do
         
         this % is_init_weight = .true.
@@ -268,6 +269,7 @@ contains   !|
         
         do layer_index=1, l_count
             call RANDOM_NUMBER(this % pt_Theta(layer_index) % Theta) 
+            this % pt_Theta(layer_index) % Theta = 2.0 * this % pt_Theta(layer_index) % Theta - 1
         end do
         
         this % is_init_threshold = .true.

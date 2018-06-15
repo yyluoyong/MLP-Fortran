@@ -337,10 +337,10 @@ contains   !|
         
         tag = 0
         do j=1, y_shape(2)
-            max_index_t = MAXLOC(ABS(t(:,j)))
-            max_index_y = MAXLOC(ABS(y(:,j)))
+            max_index_t = MAXLOC(t(:,j))
+            max_index_y = MAXLOC(y(:,j))
             
-            if (max_index_t(1) /= max_index_y(1)) then
+            if (max_index_t(1) == max_index_y(1)) then
                 tag = tag + 1
             end if
         end do

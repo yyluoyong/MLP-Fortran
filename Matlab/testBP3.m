@@ -27,9 +27,12 @@ for i = 1:2000
     Y(:,i) = y;
 end
 
-loop = 1000;
+loop = 2000;
 E = zeros(1,loop);
+Acc = zeros(1,loop);
 for loopi = 1:loop
+    
+    tag = 0;
     
     for i = 1:2000
         x = traindata(1:2,i);
@@ -46,7 +49,14 @@ for loopi = 1:loop
             yout(j) = sigmod(yin(j));
         end
         
-        e = yout-Y(:,i);%输出层计算结果误差
+        [~, M] = max(yout);
+        [~, N] = max(Y(:,i));
+        
+        if M == N
+            tag = tag + 1;
+        end
+        
+        e = abs(yout-Y(:,i));%输出层计算结果误差
         E(loopi) = e(1)+e(2);
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %后向反馈
@@ -95,13 +105,16 @@ for loopi = 1:loop
         
     end
     
+    Acc(loopi) = tag / 2000.0; 
+    
+    
     if mod(loopi,100)==0
         loopi
     end
     
 end
 
-plot(E);
+plot(Acc);
 
 % %查看训练效果
 tempyout = zeros(2,1000);
