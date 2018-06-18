@@ -24,7 +24,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     logical, private :: is_allocate_done = .false.
     
     !* 训练集样本数量，最大是60000
-    integer, public :: count_train_sample = 10000
+    integer, public :: count_train_sample = 50
     
     !* 测试集样本数量，最大是10000
     integer, public :: count_test_sample = 5000
@@ -53,7 +53,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
 contains   !|
 !||||||||||||
 
-    procedure, public :: main      => m_main
+    procedure, public :: main => m_main
 
     procedure, private :: load_MNIST_data => m_load_MNIST_data
     procedure, private :: read_MNIST_data_from_file => m_read_MNIST_data_from_file
@@ -94,10 +94,14 @@ contains   !|
             X_test      => this % X_test,      &
             y_test      => this % y_test,      &
             y_test_pre  => this % y_test_pre   &              
-        )
-        
+        )       
         
         X_train = ( X_train ) / 128.0 - 1
+        
+        call this % my_NNTrain % set_train_type('classification')
+        
+        call this % my_NNTrain % &
+            set_weight_threshold_init_methods_name('xavier')
         
         call this % my_NNTrain % train('MNISTCase', X_train, &
             y_train, y_train_pre)

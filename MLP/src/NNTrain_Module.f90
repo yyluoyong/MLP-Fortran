@@ -38,11 +38,18 @@ type, public :: NNTrain
     !* 训练数据对应的目标值，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y
     
-    
+    !* 默认为空，即使用NNStructure中定义的(-1,1)
+    character(len=30), private :: &
+        weight_threshold_init_methods_name = ''
     
     !* 调用者标识，可用于读取指定的配置信息等。
     character(len=180), private :: caller_name = ''
 
+    !* 问题的类别标识
+    !* regression 回归问题，默认值
+    !* classification 分类问题
+    character(len=20), private :: train_type = 'regression'
+    
     ! 是否初始化完成的标识
     logical, private :: is_init = .false.
         
@@ -86,13 +93,18 @@ contains   !|
 
     procedure, private :: init => m_init
     
+    procedure, public :: set_caller_name => m_set_caller_name
+    procedure, public :: set_weight_threshold_init_methods_name => &
+        m_set_weight_threshold_init_methods_name
+    procedure, public :: set_train_type => m_set_train_type
+    
     procedure, public :: train => m_train
     procedure, public :: sim   => m_sim
 
     procedure, private :: standard_BP_update     => m_standard_BP_update
     procedure, private :: accumulation_BP_update => m_accumulation_BP_update
     
-    procedure, private :: get_total_error => m_get_total_error
+    procedure, private :: get_error_or_accuracy => m_get_error_or_accuracy
     
     procedure, private :: allocate_memory   => m_allocate_memory
     procedure, private :: deallocate_memory => m_deallocate_memory
@@ -116,10 +128,15 @@ end type NNTrain
     private :: m_accumulation_BP_update
     
     private :: m_get_total_error
+    private :: m_get_accuracy
+    private :: m_get_error_or_accuracy
     
     private :: m_allocate_memory
     private :: m_deallocate_memory
     
+    private :: m_set_caller_name
+    private :: m_set_train_type
+    private :: m_set_weight_threshold_init_methods_name
     private :: m_init_NNParameter
     private :: m_load_NNParameter
     private :: m_load_NNParameter_array
@@ -135,6 +152,7 @@ contains   !|
     !* (2). 申请内存空间;
     !* (3). 初始化网络结构.
     subroutine m_init( this, caller_name, X, y )
+    use mod_NNWeightThresholdInitMethods
     implicit none
         class(NNTrain), intent(inout) :: this
         !* 调用者信息，值可以为 ''，此时使用默认配置信息
@@ -189,6 +207,10 @@ contains   !|
                     this % act_fun_name_list(i), &
                     this % my_NNStructure % pt_Layer(i) % act_fun)           
             end do
+            
+            call NN_weight_threshold_init_main(            &
+                this % weight_threshold_init_methods_name, &
+                this % my_NNStructure)
                 
             this % is_init = .true.
             
@@ -212,11 +234,12 @@ contains   !|
         real(PRECISION), dimension(:,:), intent(inout) :: y
         
         integer :: sample_index, t_step
+        integer :: X_shape(2)
         real(PRECISION) :: err, acc
         character(len=180) :: msg
-        character(len=30) :: step_to_string, err_to_string, &
-            acc_to_string
-          
+        
+        X_shape = SHAPE(X)
+        
         !* 初始化
         call this % init( caller_name, X, t )
         
@@ -224,7 +247,7 @@ contains   !|
         
             call LogDebug("NNTrain: SUBROUTINE m_train step")
             
-            do sample_index=1, this % sample_count
+            do sample_index=1, X_shape(2)
 
                 call this % my_NNStructure % backward_propagation( X(:, sample_index), &
                     t(:, sample_index), y(:, sample_index) )
@@ -240,29 +263,12 @@ contains   !|
                     call this % accumulation_BP_update()
             end if
             
-            call this % get_total_error(t, y, err)        
-            call m_get_accuracy(t, y, acc)  
-            
-            write(UNIT=step_to_string, FMT='(I15)') t_step
-            write(UNIT=err_to_string, FMT='(ES16.5)') err
-            write(UNIT=acc_to_string, FMT='(F8.5)') acc
-            msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
-                ",  err = " // TRIM(ADJUSTL(err_to_string)) // &
-                ",  acc = " // TRIM(ADJUSTL(acc_to_string))
-            call LogInfo(msg)
+            call this % get_error_or_accuracy(t_step, t, y, err, acc)
             
             if (err < this % error_avg) then
                 exit
             end if
-            
-            !call m_get_accuracy(t, y, err)  
-            !
-            !write(UNIT=step_to_string, FMT='(I15)') t_step
-            !write(UNIT=err_to_string, FMT='(ES16.5)') err
-            !msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
-            !    ",  acc = " // TRIM(ADJUSTL(err_to_string))
-            !call LogInfo(msg)
-     
+   
         end do
         
         return
@@ -279,14 +285,19 @@ contains   !|
         real(PRECISION), dimension(:,:), intent(out) :: y
         
         integer :: sample_index
+        integer :: X_shape(2)
         real(PRECISION) :: err, acc
+        character(len=20) :: acc_to_string
+        character(len=180) :: msg
         
         if( .not. this % is_init ) then
             call LogErr("NNTrain: SUBROUTINE m_sim, &
                 NNTrain need init first.")
         end if
         
-        do sample_index=1, this % sample_count
+        X_shape = SHAPE(X)
+        
+        do sample_index=1, X_shape(2)
             call this % my_NNStructure % forward_propagation( X(:, sample_index), &
                 t(:, sample_index), y(:, sample_index) )
         end do
@@ -294,31 +305,86 @@ contains   !|
         !* undo：根据已有的 t，预测的 y，计算误差等等.
         !* call this % get_error(t, y)
         call m_get_accuracy(t, y, acc) 
-        write(*, *) "Sim acc = ", acc
+        
+        write(UNIT=acc_to_string, FMT='(F8.5)') acc
+        msg = "Sim acc = " // TRIM(ADJUSTL(acc_to_string))
+        call LogInfo(msg)
         
         return
     end subroutine m_sim
     !====
-      
-    !* 误差计算等
-    subroutine m_get_total_error( this, t, y, err )
+    
+    
+    !* 获取单步迭代的误差或者精确度等并输出显示信息
+    subroutine m_get_error_or_accuracy( this, step, t, y, err, acc )
     implicit none
         class(NNTrain), intent(inout) :: this
+        integer, intent(in) :: step
         !* t 是实际输出，y 是网络预测输出
         real(PRECISION), dimension(:,:), intent(in) :: t
         real(PRECISION), dimension(:,:), intent(in) :: y
         real(PRECISION), intent(inout) :: err
+        real(PRECISION), optional, intent(inout) :: acc
+    
+        real(PRECISION) :: max_err, acc_local
+        character(len=20) :: step_to_string, err_to_string,  &
+            max_err_to_string, acc_to_string
+        character(len=180) :: msg
+        
+        call m_get_total_error( t, y, err, max_err )
+        
+        write(UNIT=step_to_string, FMT='(I15)') step  
+        write(UNIT=err_to_string, FMT='(ES16.5)') err
+        write(UNIT=max_err_to_string, FMT='(ES16.5)') max_err           
+        
+        msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
+            ",  err = " // TRIM(ADJUSTL(err_to_string)) // &
+            ",  max_acc = " // TRIM(ADJUSTL(max_err_to_string))
+        
+        select case (TRIM(ADJUSTL(this % train_type)))
+        case ('regression')
+            !PASS
+        case ('classification')
+            call m_get_accuracy( t, y, acc_local )
+            if (PRESENT(acc)) then
+                acc = acc_local        
+            end if
+            write(UNIT=acc_to_string, FMT='(F8.5)') acc_local
+            msg = TRIM(ADJUSTL(msg)) // ", acc = " // &
+                TRIM(ADJUSTL(acc_to_string))
+        case default
+            call LogErr("NNTrain: &
+                SUBROUTINE m_get_error_or_accuracy, &
+                train_type error")
+            stop       
+        end select
+        
+        call LogInfo(msg)
+        
+        call LogDebug("NNTrain: SUBROUTINE m_get_error_or_accuracy")
+        
+        return
+    end subroutine m_get_error_or_accuracy
+    !====
+    
+    !* 静态子程序，误差计算
+    subroutine m_get_total_error( t, y, err, max_err )
+    implicit none
+        !* t 是实际输出，y 是网络预测输出
+        real(PRECISION), dimension(:,:), intent(in) :: t
+        real(PRECISION), dimension(:,:), intent(in) :: y
+        real(PRECISION), intent(inout) :: err, max_err
         
         integer :: t_shape(2)   
-        real(PRECISION) :: max_err
+        integer :: i
         
         t_shape = SHAPE(t)
         
-        err = SUM(ABS(t - y))
-        err = err / t_shape(2)
+        err = SUM((t - y)*(t - y))
+        err = err / ( t_shape(1) * t_shape(2) )
+        err = SQRT(err)
         
         max_err = MAXVAL(ABS(t - y))
-        write(*, *) 'max_err = ', max_err
         
         call LogDebug("NNTrain: SUBROUTINE m_get_total_error")
              
@@ -326,7 +392,7 @@ contains   !|
     end subroutine m_get_total_error
     !====
     
-    !* 计算正确率
+    !* 静态子程序，正确率计算
     subroutine m_get_accuracy( t, y, acc )
     implicit none
         real(PRECISION), dimension(:,:), intent(in) :: t
@@ -350,6 +416,8 @@ contains   !|
         
         acc = 1.0 * tag / y_shape(2)
         
+        call LogDebug("NNTrain: SUBROUTINE m_get_accuracy")
+        
         return
     end subroutine m_get_accuracy
     !====
@@ -369,7 +437,7 @@ contains   !|
             eta_w = this % learning_rate_weight(layer_index)
             eta_theta = this % learning_rate_threshold(layer_index)
             
-            associate ( &
+            associate (                                                            &
                 W      => this % my_NNStructure % pt_W( layer_index ) % W,         &
                 Theta  => this % my_NNStructure % pt_Theta( layer_index ) % Theta, &
                 dW     => this % my_NNStructure % pt_Layer( layer_index ) % dW,    &               
@@ -466,6 +534,50 @@ contains   !|
     end subroutine
     !====
     
+    !* 设置权值、阈值处理方法的名字
+    subroutine m_set_caller_name( this, caller_name )
+    implicit none
+        class(NNTrain), intent(inout) :: this
+        character(len=*), intent(in) :: caller_name
+    
+        this % caller_name = caller_name
+        
+        call LogDebug("mod_NNWeightThresholdInitMethods: &
+            SUBROUTINE m_set_caller_name")
+        
+        return
+    end subroutine m_set_caller_name
+    !====
+    
+    !* 设置权值、阈值处理方法的名字
+    subroutine m_set_weight_threshold_init_methods_name( this, name )
+    implicit none
+        class(NNTrain), intent(inout) :: this
+        character(len=*), intent(in) :: name
+    
+        this % weight_threshold_init_methods_name = name
+        
+        call LogDebug("mod_NNWeightThresholdInitMethods: &
+            SUBROUTINE set_weight_threshold_init_methods_name")
+        
+        return
+    end subroutine
+    !====
+    
+    !* 设置训练问题类别
+    subroutine m_set_train_type( this, type_name )
+    implicit none
+        class(NNTrain), intent(inout) :: this
+        character(len=*), intent(in) :: type_name
+    
+        this % train_type = type_name
+        
+        call LogDebug("mod_NNWeightThresholdInitMethods: &
+            SUBROUTINE m_set_train_type")
+        
+        return
+    end subroutine m_set_train_type
+    !====
     
     !* 读取网络的参数
     subroutine m_load_NNParameter( this )
@@ -549,8 +661,9 @@ contains   !|
             read( 30, * ) this % act_fun_name_list(i)  
         end do
         
-        do i=1, l_count
-            write( *, * ) this % act_fun_name_list(i)  
+        call LogInfo("Activation Function List: ")
+        do i=1, l_count       
+            call LogInfo(this % act_fun_name_list(i))
         end do
         
         close(unit=30)

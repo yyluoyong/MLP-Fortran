@@ -191,10 +191,39 @@ implicit none
         end do
         
         return
-    end subroutine output_tecplot_2D
+        end subroutine output_tecplot_2D
     !====
     
+    !* 随机生成均匀的一维数组
+    subroutine uniform_random_array_1D( a_min, a_max, array )
+    implicit none
+        real(PRECISION), intent(in) :: a_min, a_max
+        real(PRECISION), dimension(:), intent(inout) :: array
     
+        call RANDOM_SEED()
+        call RANDOM_NUMBER(array)
+        
+        array = (a_max - a_min) * array + a_min
+        
+        return
+    end subroutine uniform_random_array_1D
+    !====
+    
+    !* 随机生成均匀的二维数组
+    subroutine uniform_random_array_2D( a_min, a_max, array )
+    implicit none
+        real(PRECISION), intent(in) :: a_min, a_max
+        real(PRECISION), dimension(:,:), intent(inout) :: array
+     
+        call RANDOM_SEED()
+        call RANDOM_NUMBER(array)
+        
+        array = (a_max - a_min) * array + a_min
+        
+        return
+    end subroutine uniform_random_array_2D
+    !====
+        
     subroutine test_output_tecplot_line()
     implicit none
         real(PRECISION), dimension(:), allocatable :: &

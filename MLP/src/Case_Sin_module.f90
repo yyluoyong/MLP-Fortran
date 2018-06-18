@@ -75,6 +75,9 @@ contains   !|
         
         call this % init_train_data()
         
+        call this % my_NNTrain % &
+            set_weight_threshold_init_methods_name('xavier')
+        
         call this % my_NNTrain % train('SinCase', this % X_train, &
             this % y_train, this % y_pre)
         

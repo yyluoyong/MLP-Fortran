@@ -104,9 +104,9 @@ contains   !|
             stop       
         end select
         
-        call LogInfo("ActivationFunctionList: SUBROUTINE m_get_act_fun_by_name, &
+        call LogDebug("ActivationFunctionList: SUBROUTINE m_get_act_fun_by_name, &
             act_fun_name is : ")
-        call LogInfo(TRIM(ADJUSTL(act_fun_name)))
+        call LogDebug(TRIM(ADJUSTL(act_fun_name)))
     
         return
     end subroutine m_get_act_fun_by_name

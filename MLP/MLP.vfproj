@@ -71,6 +71,7 @@
 		<File RelativePath=".\src\NNStructure_Module.f90"/>
 		<File RelativePath=".\src\NNTanH_Module.f90"/>
 		<File RelativePath=".\src\NNTrain_Module.f90"/>
+		<File RelativePath=".\src\NNWeightThresholdInitMethods_module.f90"/>
 		<File RelativePath=".\src\Precision_Module.f90"/>
 		<File RelativePath=".\src\Tools_Module.f90"/></Filter></Files>
 	<Globals/></VisualStudioProject>

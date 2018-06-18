@@ -228,7 +228,8 @@ contains   !|
     end subroutine m_init_output_layer
     !====
     
-    !* 随机初始化权值矩阵
+    !* 随机初始化阈值，默认初始化到(-1,1)
+    !* 在Train方法中，可以重新设置初始化.
     subroutine m_init_layer_weight( this )
     implicit none
         class(NNStructure), intent(inout) :: this
@@ -242,8 +243,14 @@ contains   !|
         call LogInfo("NNStructure: SUBROUTINE m_init_layer_weight")
         
         do layer_index=1, l_count
-            call RANDOM_NUMBER(this % pt_W(layer_index) % W)
-            this % pt_W(layer_index) % W = 2.0 * this % pt_W(layer_index) % W - 1
+            associate (                            &              
+                W => this % pt_W(layer_index) % W  &
+            )
+                
+            call RANDOM_NUMBER(W)
+            W = 2.0 * W - 1.0
+            
+            end associate
         end do
         
         this % is_init_weight = .true.
@@ -254,7 +261,8 @@ contains   !|
     end subroutine m_init_layer_weight
     !====
     
-    !* 随机初始化阈值
+    !* 随机初始化阈值，默认初始化到(-1,1)
+    !* 在Train方法中，可以重新设置初始化.
     subroutine m_init_layer_threshold( this )
     implicit none
         class(NNStructure), intent(inout) :: this
@@ -268,10 +276,16 @@ contains   !|
         call LogInfo("NNStructure: SUBROUTINE m_init_layer_threshold")
         
         do layer_index=1, l_count
-            call RANDOM_NUMBER(this % pt_Theta(layer_index) % Theta) 
-            this % pt_Theta(layer_index) % Theta = 2.0 * this % pt_Theta(layer_index) % Theta - 1
+            associate (                                        &              
+                Theta => this % pt_Theta(layer_index) % Theta  &
+            )
+                
+            call RANDOM_NUMBER(Theta) 
+            Theta = 2.0 * Theta - 1.0
+            
+            end associate
         end do
-        
+  
         this % is_init_threshold = .true.
         
         call LogDebug("NNStructure: SUBROUTINE m_init_layer_threshold")
@@ -280,7 +294,8 @@ contains   !|
     end subroutine m_init_layer_threshold
     !====
     
-    !* 前向计算，根据输入值，返回预测值
+    !* 前向计算，根据输入值，计算神经网络各层的值，
+    !* 并返回预测值
     subroutine m_forward_propagation( this, X, t, y )
     implicit none
         class(NNStructure), intent(inout) :: this
@@ -309,7 +324,7 @@ contains   !|
     
 
       
-    !* 反向计算导数
+    !* 反向计算，计算误差函数对神经网络各层的导数
     subroutine m_backward_propagation( this, X, t, y )
     implicit none
         class(NNStructure), intent(inout) :: this
@@ -333,7 +348,7 @@ contains   !|
         
         !* 对导数信息进行求和，累计BP算法需要用到.
         do layer_index=1, l_count        
-            associate ( &
+            associate (                                                   &
                 dW         => this % pt_Layer( layer_index ) % dW,        &
                 dTheta     => this % pt_Layer( layer_index ) % dTheta,    &
                 sum_dW     => this % pt_Layer( layer_index ) % sum_dW,    &               
@@ -386,9 +401,8 @@ contains   !|
         
         l_count = this % layers_count
         
-        do layer_index=1, l_count
-        
-            associate ( &              
+        do layer_index=1, l_count     
+            associate (                                        &              
                 W     => this % pt_W(layer_index) % W,         &
                 Theta => this % pt_Theta(layer_index) % Theta, &
                 S     => this % pt_Layer(layer_index) % S,     &
@@ -407,8 +421,7 @@ contains   !|
             !call this % my_act_fun % f_vect( R, Z )
             call this % pt_Layer(layer_index) % act_fun % f_vect( R, Z )      
             
-            end associate                     
-                
+            end associate                                 
         end do
         
         call LogDebug("NNStructure: SUBROUTINE m_get_all_layer_local_var")
@@ -436,7 +449,7 @@ contains   !|
             this % pt_Layer(l_count) % Z - this % t
         
         do layer_index=l_count-1, 1, -1
-            associate ( &              
+            associate (                                                             &              
                 M => this % layers_node_count(layer_index),                         &
                 N => this % layers_node_count(layer_index + 1),                     &
                 R => this % pt_Layer(layer_index + 1) % R,                          &
@@ -521,7 +534,7 @@ contains   !|
         !* 目标层输出数组大小 
         N = this % layers_node_count(layer_index)
 
-        associate ( &                              
+        associate (                                                      &                              
             dW          => this % pt_Layer(layer_index) % dW,            &
             R           => this % pt_Layer(layer_index) % R,             &
             matrix_part => this % pt_Layer(layer_index) % d_Matrix_part, &
