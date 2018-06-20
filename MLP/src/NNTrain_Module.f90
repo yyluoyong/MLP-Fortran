@@ -97,6 +97,7 @@ contains   !|
     procedure, public :: set_weight_threshold_init_methods_name => &
         m_set_weight_threshold_init_methods_name
     procedure, public :: set_train_type => m_set_train_type
+    procedure, public :: set_loss_function => m_set_loss_function
     
     procedure, public :: train => m_train
     procedure, public :: sim   => m_sim
@@ -137,6 +138,8 @@ end type NNTrain
     private :: m_set_caller_name
     private :: m_set_train_type
     private :: m_set_weight_threshold_init_methods_name
+    private :: m_set_loss_function
+    
     private :: m_init_NNParameter
     private :: m_load_NNParameter
     private :: m_load_NNParameter_array
@@ -577,6 +580,20 @@ contains   !|
         
         return
     end subroutine m_set_train_type
+    !====
+ 
+    !* 设置激活函数
+    subroutine m_set_loss_function( this, loss_fun )
+    implicit none
+        class(NNTrain), intent(inout) :: this
+        class(BaseLossFunction), target, intent(in) :: loss_fun
+    
+        call this % my_NNStructure % set_loss_function( loss_fun )
+        
+        call LogDebug("NNTrain: SUBROUTINE m_set_loss_function")
+        
+        return
+    end subroutine m_set_loss_function
     !====
     
     !* 读取网络的参数

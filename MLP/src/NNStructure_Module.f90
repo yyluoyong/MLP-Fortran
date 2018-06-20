@@ -6,6 +6,7 @@ use mod_Precision
 use mod_NNParameter
 use mod_Log
 use mod_BaseActivationFunction
+use mod_BaseLossFunction
 implicit none
 
     !-------------------------
@@ -30,6 +31,8 @@ implicit none
         logical, private :: is_init_weight = .false.
         logical, private :: is_init_threshold = .false.
         
+        !* 是否初始化损失函数
+        logical, private :: is_init_loss_fun = .false.
         
         ! 层的数目，不含输入层
         integer, public :: layers_count
@@ -55,6 +58,9 @@ implicit none
         ! 网络的目标输出
         real(PRECISION), dimension(:), allocatable, private :: t
         
+        !* 损失函数
+        class(BaseLossFunction), pointer :: loss_function
+        
     !||||||||||||    
     contains   !|
     !||||||||||||
@@ -64,6 +70,8 @@ implicit none
                        
         procedure, public :: forward_propagation  => m_forward_propagation
         procedure, public :: backward_propagation => m_backward_propagation
+        
+        procedure, public :: set_loss_function => m_set_loss_function
         
         procedure, private :: get_all_derivative_variable => m_get_all_derivative_variable
                 
@@ -122,6 +130,8 @@ implicit none
     private :: m_get_layer_dTheta
     private :: m_get_all_dTheta
     
+    private :: m_set_loss_function
+    
     private :: m_get_all_derivative_variable
     !-------------------------
 
@@ -133,11 +143,12 @@ contains   !|
     !* (1). 给定网络基本结构、申请内存空间;
     !* (2). 随机初始化权值、阈值;
     !* (3). 初始化激活函数.
-    subroutine m_init( this, l_count, l_node_count )
+    subroutine m_init( this, l_count, l_node_count, loss_fun )
     implicit none
         class(NNStructure), intent(inout) :: this
         integer, intent(in) :: l_count
-        integer, dimension(:), intent(in) :: l_node_count      
+        integer, dimension(:), intent(in) :: l_node_count 
+        class(BaseLossFunction), target, optional, intent(in) :: loss_fun
 
         if( .not. this % is_init ) then
             
@@ -153,6 +164,10 @@ contains   !|
             
             call this % init_layer_weight()
             call this % init_layer_threshold()
+            
+            if (PRESENT(loss_fun)) then
+                call this % set_loss_function(loss_fun)
+            end if
             
             this % is_init = .true.
             
@@ -196,6 +211,21 @@ contains   !|
     end subroutine m_init_activation_function
     !====
     
+    !* 设置激活函数
+    subroutine m_set_loss_function( this, loss_fun )
+    implicit none
+        class(NNStructure), intent(inout) :: this
+        class(BaseLossFunction), target, intent(in) :: loss_fun
+    
+        this % loss_function => loss_fun
+        
+        this % is_init_loss_fun = .true.
+        
+        call LogDebug("NNStructure: SUBROUTINE m_set_loss_function")
+        
+        return
+    end subroutine m_set_loss_function
+    !====
     
     !* 初始化输入层
     subroutine m_init_input_layer( this, X_in )
@@ -445,8 +475,16 @@ contains   !|
         l_count = this % layers_count
                       
         !* zeta对zn的导数等于 zn - t
-        this % pt_Layer(l_count) % d_Matrix_part = &
-            this % pt_Layer(l_count) % Z - this % t
+        associate (                                                    &              
+            d_Matrix_part => this % pt_Layer(l_count) % d_Matrix_part, &
+            Z             => this % pt_Layer(l_count) % Z,             &
+            t             => this % t                                  &
+        )
+        
+        !d_Matrix_part = Z - t
+        call this % loss_function % df(t, Z, d_Matrix_part)
+            
+        end associate
         
         do layer_index=l_count-1, 1, -1
             associate (                                                             &              
@@ -461,8 +499,6 @@ contains   !|
             allocate( WT_GammaT(M, N) )
                 
             do j=1, N
-                !call this % my_act_fun % df( R(j), df_to_dr )
-                !call this % pt_Layer(layer_index+1) % act_fun % df( R(j), df_to_dr ) 
                 call this % pt_Layer(layer_index+1) % act_fun % df( j, R, df_to_dr ) 
                 WT_GammaT(:, j) = W(j, :) * df_to_dr
             end do
@@ -543,8 +579,6 @@ contains   !|
         )
         
         do i=1, N     
-            !call this % my_act_fun % df( R(i), df_to_dr )
-            !call this % pt_Layer(layer_index) % act_fun % df( R(i), df_to_dr )
             call this % pt_Layer(layer_index) % act_fun % df( i, R, df_to_dr )
             
             !* dW^{k}_{ij} = f'(r^{k}_i) * z^{k-1}_j * E_i * d_Matrix_part
@@ -573,15 +607,13 @@ contains   !|
         
         N = this % layers_node_count(layer_index)
 
-        associate (&                              
+        associate (                                                     &                              
             dTheta      => this % pt_Layer(layer_index) % dTheta,       &
             R           => this % pt_Layer(layer_index) % R,            &
             matrix_part => this % pt_Layer(layer_index) % d_Matrix_part &
         )
         
         do i=1, N          
-            !call this % my_act_fun % df( R(i), df_to_dr )
-            !call this % pt_Layer(layer_index) % act_fun % df( R(i), df_to_dr )
             call this % pt_Layer(layer_index) % act_fun % df( i, R, df_to_dr )
         
             !* dTheta_{i} = -f'(r_i) * E_i * d_Matrix_part
