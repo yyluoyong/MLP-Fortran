@@ -3,9 +3,9 @@ use mod_Precision
 use mod_BaseActivationFunction
 implicit none    
 
-!----------------
+!-------------------
 ! 工作类：激活函数 |
-!----------------
+!-------------------
 type, extends(BaseActivationFunction), public :: Sigmod
     !* 继承自BaseActivationFunction并实现其接口
 
@@ -33,13 +33,14 @@ contains   !|
 !||||||||||||
 
     !* sigmod函数
-    subroutine m_fun_sigmod( this, x, y )
+    subroutine m_fun_sigmod( this, index, x, y )
     implicit none
         class(Sigmod), intent(inout) :: this
-        real(PRECISION), intent(in) :: x
+        integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: y
     
-        y = 1.0 / (1.0 + exp(-x))
+        y = 1.0 / (1.0 + exp(-x(index)))
         
         return
     end subroutine
@@ -59,15 +60,16 @@ contains   !|
 	!====
     
 	!* sigmod函数的一阶导数
-	subroutine m_df_sigmod( this, x, dy )
+	subroutine m_df_sigmod( this, index, x, dy )
 	implicit none
         class(Sigmod), intent(inout) :: this
-		real(PRECISION), intent(in) :: x
+		integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: dy
 	
 		real(PRECISION) :: y
 	
-		y = 1.0 / (1.0 + exp(-x))
+		y = 1.0 / (1.0 + exp(-x(index)))
 		dy = y * (1 - y)
 	
 		return

@@ -36,16 +36,17 @@ contains   !|
 !||||||||||||
 
     !* PReLU函数
-    subroutine m_fun_PReLU( this, x, y )
+    subroutine m_fun_PReLU( this, index, x, y )
     implicit none
         class(PReLU), intent(inout) :: this
-        real(PRECISION), intent(in) :: x
+        integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: y
     
-        if (x < 0) then
-            y = PReLU_ALPHA * x 
+        if (x(index) < 0) then
+            y = PReLU_ALPHA * x(index) 
         else
-            y = x
+            y = x(index)
         end if
     
         return
@@ -76,13 +77,14 @@ contains   !|
 	!====
     
 	!* PReLU函数的一阶导数
-	subroutine m_df_PReLU( this, x, dy )
+	subroutine m_df_PReLU( this, index, x, dy )
 	implicit none
         class(PReLU), intent(inout) :: this
-		real(PRECISION), intent(in) :: x
+		integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: dy
 	
-		if (x < 0) then
+		if (x(index) < 0) then
             dy = PReLU_ALPHA
         else
             dy = 1

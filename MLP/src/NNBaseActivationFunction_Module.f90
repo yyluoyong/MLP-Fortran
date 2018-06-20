@@ -1,9 +1,9 @@
 module mod_BaseActivationFunction
 implicit none
     
-!------------------
+!-------------------
 ! 抽象类：激活函数 |
-!------------------
+!-------------------
 type, abstract, public :: BaseActivationFunction
 
 !||||||||||||    
@@ -23,20 +23,27 @@ end type BaseActivationFunction
 !===================
     
 
-!------------------
+!-------------------
 ! 抽象类：函数接口 |
-!------------------	
-abstract interface   
+!-------------------	
+abstract interface 
+
+	!* 注：对于sigmod等激活函数，其是单变量函数，
+	!* 而对于softmax函数来说，它的输入是一个向量，
+	!* 是多变量函数，因此函数应接收向量 x.
 
 	!* 激活函数
-	subroutine m_f( this, x, y )
+	subroutine m_f( this, index, x, y )
     use mod_Precision
     import :: BaseActivationFunction
 	implicit none
 		class(BaseActivationFunction), intent(inout) :: this
-		real(PRECISION), intent(in) :: x
+		!* index 表示返回 f( x(index) ) 的值
+		integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: y
-
+		
+		
 	end subroutine
 	!====
     
@@ -53,12 +60,14 @@ abstract interface
 	!====
 	
 	!* 激活函数一阶导数
-	subroutine m_df( this, x, dy )
+	subroutine m_df( this, index, x, dy  )
     use mod_Precision
     import :: BaseActivationFunction
 	implicit none
 		class(BaseActivationFunction), intent(inout) :: this
-		real(PRECISION), intent(in) :: x
+		!* index 表示返回 f'( x(index) ) 的值
+		integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: dy
 
 	end subroutine

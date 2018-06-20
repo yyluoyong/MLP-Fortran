@@ -3,9 +3,9 @@ use mod_Precision
 use mod_BaseActivationFunction
 implicit none    
 
-!----------------
+!-------------------
 ! 工作类：激活函数 |
-!----------------
+!-------------------
 type, extends(BaseActivationFunction), public :: Linear
     !* 继承自BaseActivationFunction并实现其接口
 
@@ -33,13 +33,14 @@ contains   !|
 !||||||||||||
 
     !* Linear函数
-    subroutine m_fun_Linear( this, x, y )
+    subroutine m_fun_Linear( this, index, x, y )
     implicit none
         class(Linear), intent(inout) :: this
-        real(PRECISION), intent(in) :: x
+        integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: y
     
-        y = x
+        y = x(index)
     
         return
     end subroutine
@@ -59,10 +60,11 @@ contains   !|
 	!====
     
 	!* Linear函数的一阶导数
-	subroutine m_df_Linear( this, x, dy )
+	subroutine m_df_Linear( this, index, x, dy )
 	implicit none
         class(Linear), intent(inout) :: this
-		real(PRECISION), intent(in) :: x
+		integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: dy
 	
 		dy = 1

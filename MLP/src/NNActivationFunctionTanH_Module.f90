@@ -33,13 +33,14 @@ contains   !|
 !||||||||||||
 
     !* tanh函数
-    subroutine m_fun_tanh( this, x, y )
+    subroutine m_fun_tanh( this, index, x, y )
     implicit none
         class(Tan_H), intent(inout) :: this
-        real(PRECISION), intent(in) :: x
+        integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: y
     
-        y = TANH(x)
+        y = TANH(x(index))
         
         return
     end subroutine
@@ -59,15 +60,16 @@ contains   !|
 	!====
     
 	!* tanh函数的一阶导数
-	subroutine m_df_tanh( this, x, dy )
+	subroutine m_df_tanh( this, index, x, dy )
 	implicit none
         class(Tan_H), intent(inout) :: this
-		real(PRECISION), intent(in) :: x
+		integer, intent(in) :: index
+		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: dy
 	
 		real(PRECISION) :: y
 	
-		y = TANH(x)
+		y = TANH(x(index))
 		dy = 1 - y*y
 	
 		return

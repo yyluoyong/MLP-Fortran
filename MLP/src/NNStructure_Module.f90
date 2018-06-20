@@ -462,7 +462,8 @@ contains   !|
                 
             do j=1, N
                 !call this % my_act_fun % df( R(j), df_to_dr )
-                call this % pt_Layer(layer_index+1) % act_fun % df( R(j), df_to_dr ) 
+                !call this % pt_Layer(layer_index+1) % act_fun % df( R(j), df_to_dr ) 
+                call this % pt_Layer(layer_index+1) % act_fun % df( j, R, df_to_dr ) 
                 WT_GammaT(:, j) = W(j, :) * df_to_dr
             end do
             
@@ -543,8 +544,9 @@ contains   !|
         
         do i=1, N     
             !call this % my_act_fun % df( R(i), df_to_dr )
-            call this % pt_Layer(layer_index) % act_fun % df( R(i), df_to_dr )
-        
+            !call this % pt_Layer(layer_index) % act_fun % df( R(i), df_to_dr )
+            call this % pt_Layer(layer_index) % act_fun % df( i, R, df_to_dr )
+            
             !* dW^{k}_{ij} = f'(r^{k}_i) * z^{k-1}_j * E_i * d_Matrix_part
             do j=1, M
                 dW(i, j) = df_to_dr * Z1(j) * matrix_part(i)
@@ -579,7 +581,8 @@ contains   !|
         
         do i=1, N          
             !call this % my_act_fun % df( R(i), df_to_dr )
-            call this % pt_Layer(layer_index) % act_fun % df( R(i), df_to_dr )
+            !call this % pt_Layer(layer_index) % act_fun % df( R(i), df_to_dr )
+            call this % pt_Layer(layer_index) % act_fun % df( i, R, df_to_dr )
         
             !* dTheta_{i} = -f'(r_i) * E_i * d_Matrix_part
             dTheta(i) = -df_to_dr * matrix_part(i)
