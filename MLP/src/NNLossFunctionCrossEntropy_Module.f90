@@ -15,6 +15,8 @@ contains   !|
 
     procedure, public :: f  => m_fun_CrossEntropy
     procedure, public :: df => m_df_CrossEntropy
+    
+    procedure, public :: print_msg => m_print_msg
 
 end type CrossEntropy
 !===================
@@ -22,6 +24,7 @@ end type CrossEntropy
     !-------------------------
     private :: m_fun_CrossEntropy
     private :: m_df_CrossEntropy
+    private :: m_print_msg
     !-------------------------
 	
 !||||||||||||    
@@ -64,4 +67,16 @@ contains   !|
 	!====
 	
 
+    !*  ‰≥ˆ–≈œ¢
+	subroutine m_print_msg( this )
+	implicit none
+		class(CrossEntropy), intent(inout) :: this
+
+        write(*, *) "Cross Entropy Function."
+        
+        return
+	end subroutine
+	!====
+    
+    
 end module

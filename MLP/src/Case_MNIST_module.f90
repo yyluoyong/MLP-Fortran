@@ -3,6 +3,7 @@ use mod_Precision
 use mod_Log
 use mod_BaseCalculationCase
 use mod_NNTrain
+use mod_CrossEntropy
 implicit none    
 
 !------------------------------
@@ -48,6 +49,8 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y_test_pre
     
     type(NNTrain), pointer :: my_NNTrain
+    
+    type(CrossEntropy), pointer :: cross_entropy_function
     
 !||||||||||||    
 contains   !|
@@ -98,12 +101,17 @@ contains   !|
         
         X_train = ( X_train ) / 128.0 - 1
         
+        call this % my_NNTrain % init('MNISTCase', X_train, &
+            y_train)
+        
         call this % my_NNTrain % set_train_type('classification')
         
         call this % my_NNTrain % &
             set_weight_threshold_init_methods_name('xavier')
+            
+        call this % my_NNTrain % set_loss_function(this % cross_entropy_function)
         
-        call this % my_NNTrain % train('MNISTCase', X_train, &
+        call this % my_NNTrain % train(X_train, &
             y_train, y_train_pre)
         
         call this % my_NNTrain % sim(X_test, &
@@ -236,6 +244,8 @@ contains   !|
         
         allocate( this % my_NNTrain )
         
+        allocate( this % cross_entropy_function )
+        
         this % is_allocate_done = .true.
         
         call LogDebug("NNTrain: SUBROUTINE m_allocate_memory")
@@ -259,6 +269,7 @@ contains   !|
         deallocate( this % y_test_pre )    
         
         deallocate( this % my_NNTrain )
+        deallocate( this % cross_entropy_function )
         
         this % is_allocate_done = .false.
         

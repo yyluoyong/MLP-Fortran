@@ -11,9 +11,11 @@ contains   !|
 !||||||||||||
 
     !* 损失函数
-    procedure(m_f), deferred, public :: f 
+    procedure(abs_f), deferred, public :: f 
     !* 损失函数导数
-    procedure(m_df), deferred, public :: df  
+    procedure(abs_df), deferred, public :: df  
+    
+    procedure(abs_print_msg), deferred, public :: print_msg  
 
 end type BaseLossFunction
 !===================
@@ -25,7 +27,7 @@ end type BaseLossFunction
 abstract interface   
 
 	!* 损失函数
-	subroutine m_f( this, t, y, ans )
+	subroutine abs_f( this, t, y, ans )
     use mod_Precision
     import :: BaseLossFunction
 	implicit none
@@ -40,7 +42,7 @@ abstract interface
 	
 	!* 损失函数一阶导数
 	!* 返回对网络预测向量的导数
-	subroutine m_df( this, t, y, dy )
+	subroutine abs_df( this, t, y, dy )
     use mod_Precision
     import :: BaseLossFunction
 	implicit none
@@ -49,6 +51,16 @@ abstract interface
 		real(PRECISION), dimension(:), intent(in) :: t
 		real(PRECISION), dimension(:), intent(in) :: y
         real(PRECISION), dimension(:), intent(inout) :: dy
+
+	end subroutine
+	!====
+    
+    
+	!* 输出信息
+	subroutine abs_print_msg( this )
+    import :: BaseLossFunction
+	implicit none
+		class(BaseLossFunction), intent(inout) :: this
 
 	end subroutine
 	!====

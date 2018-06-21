@@ -81,7 +81,10 @@ contains   !|
         
         call this % normalization(this % X_train)
         
-        call this % my_NNTrain % train('MoonCase', this % X_train, &
+        call this % my_NNTrain % init('MoonCase', this % X_train, &
+            this % y_train)
+        
+        call this % my_NNTrain % train(this % X_train, &
             this % y_train, y)
         
         return

@@ -11,13 +11,13 @@ contains   !|
 !||||||||||||
 
     !* 激活函数
-    procedure(m_f), deferred, public :: f 
+    procedure(abs_f), deferred, public :: f 
     !* 接收向量参数的激活函数
-    procedure(m_f_vect), deferred, public :: f_vect 
+    procedure(abs_f_vect), deferred, public :: f_vect 
     !* 激活函数导数
-    procedure(m_df), deferred, public :: df 
+    procedure(abs_df), deferred, public :: df 
     !* 接收向量参数的激活函数导数
-    procedure(m_df_vect), deferred, public :: df_vect  
+    procedure(abs_df_vect), deferred, public :: df_vect  
 
 end type BaseActivationFunction
 !===================
@@ -33,7 +33,7 @@ abstract interface
 	!* 是多变量函数，因此函数应接收向量 x.
 
 	!* 激活函数
-	subroutine m_f( this, index, x, y )
+	subroutine abs_f( this, index, x, y )
     use mod_Precision
     import :: BaseActivationFunction
 	implicit none
@@ -48,7 +48,7 @@ abstract interface
 	!====
     
     !* 接收向量参数的激活函数
-	subroutine m_f_vect( this, x, y )
+	subroutine abs_f_vect( this, x, y )
     use mod_Precision
     import :: BaseActivationFunction
 	implicit none
@@ -60,7 +60,7 @@ abstract interface
 	!====
 	
 	!* 激活函数一阶导数
-	subroutine m_df( this, index, x, dy  )
+	subroutine abs_df( this, index, x, dy  )
     use mod_Precision
     import :: BaseActivationFunction
 	implicit none
@@ -74,7 +74,7 @@ abstract interface
 	!====
 	
 	!* 接收向量参数的激活函数一阶导数
-	subroutine m_df_vect( this, x, dy )
+	subroutine abs_df_vect( this, x, dy )
     use mod_Precision
     import :: BaseActivationFunction
 	implicit none

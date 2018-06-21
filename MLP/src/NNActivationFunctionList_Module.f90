@@ -6,6 +6,7 @@ use mod_ReLU
 use mod_PReLU
 use mod_ELU
 use mod_Linear
+use mod_Softmax
 use mod_Log
 implicit none
 
@@ -24,13 +25,13 @@ type, public :: ActivationFunctionList
     !integer, public :: ACTIVATION_FUNCTION_COUNT = 6  
     
     !* Append：增加激活函数
-    type(Sigmod), pointer, private :: function_sigmod
-    type(Tan_H),  pointer, private :: function_tanh
-    type(ReLU),   pointer, private :: function_ReLU
-    type(PReLU),  pointer, private :: function_PReLU
-    type(ELU),    pointer, private :: function_ELU
-    type(Linear), pointer, private :: function_linear
-
+    type(Sigmod),  pointer, private :: function_sigmod
+    type(Tan_H),   pointer, private :: function_tanh
+    type(ReLU),    pointer, private :: function_ReLU
+    type(PReLU),   pointer, private :: function_PReLU
+    type(ELU),     pointer, private :: function_ELU
+    type(Linear),  pointer, private :: function_linear
+    type(Softmax), pointer, private :: function_softmax
 
 !||||||||||||    
 contains   !|
@@ -60,12 +61,13 @@ contains   !|
         if( .not. this % is_init ) then
         
             !* Append：增加激活函数
-            allocate( this % function_sigmod )
-            allocate( this % function_tanh   )
-            allocate( this % function_ReLU   )
-            allocate( this % function_PReLU  )
-            allocate( this % function_ELU    )
-            allocate( this % function_linear )
+            allocate( this % function_sigmod  )
+            allocate( this % function_tanh    )
+            allocate( this % function_ReLU    )
+            allocate( this % function_PReLU   )
+            allocate( this % function_ELU     )
+            allocate( this % function_linear  )
+            allocate( this % function_softmax )
         
             this % is_init = .true.    
 
@@ -98,6 +100,8 @@ contains   !|
             pt_act_fun => this % function_ELU
         case ('linear')
             pt_act_fun => this % function_linear
+        case ('softmax')
+            pt_act_fun => this % function_softmax
         case default
             call LogErr("ActivationFunctionList: SUBROUTINE m_get_act_fun_by_name, &
                     act_fun_index > act_fun_count, activation function name Error.")

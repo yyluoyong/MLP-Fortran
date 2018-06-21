@@ -59,7 +59,7 @@ implicit none
         real(PRECISION), dimension(:), allocatable, private :: t
         
         !* 损失函数
-        class(BaseLossFunction), pointer :: loss_function
+        class(BaseLossFunction), pointer, private :: loss_function
         
     !||||||||||||    
     contains   !|
@@ -143,12 +143,11 @@ contains   !|
     !* (1). 给定网络基本结构、申请内存空间;
     !* (2). 随机初始化权值、阈值;
     !* (3). 初始化激活函数.
-    subroutine m_init( this, l_count, l_node_count, loss_fun )
+    subroutine m_init( this, l_count, l_node_count )
     implicit none
         class(NNStructure), intent(inout) :: this
         integer, intent(in) :: l_count
-        integer, dimension(:), intent(in) :: l_node_count 
-        class(BaseLossFunction), target, optional, intent(in) :: loss_fun
+        integer, dimension(:), intent(in) :: l_node_count
 
         if( .not. this % is_init ) then
             
@@ -164,10 +163,6 @@ contains   !|
             
             call this % init_layer_weight()
             call this % init_layer_threshold()
-            
-            if (PRESENT(loss_fun)) then
-                call this % set_loss_function(loss_fun)
-            end if
             
             this % is_init = .true.
             
@@ -213,11 +208,12 @@ contains   !|
     
     !* 设置激活函数
     subroutine m_set_loss_function( this, loss_fun )
+    use mod_CrossEntropy
     implicit none
         class(NNStructure), intent(inout) :: this
         class(BaseLossFunction), target, intent(in) :: loss_fun
-    
-        this % loss_function => loss_fun
+        
+        this % loss_function => loss_fun        
         
         this % is_init_loss_fun = .true.
         
@@ -474,17 +470,18 @@ contains   !|
         
         l_count = this % layers_count
                       
-        !* zeta对zn的导数等于 zn - t
+        !* zeta对zn的导数
         associate (                                                    &              
             d_Matrix_part => this % pt_Layer(l_count) % d_Matrix_part, &
             Z             => this % pt_Layer(l_count) % Z,             &
             t             => this % t                                  &
         )
         
-        !d_Matrix_part = Z - t
+        !* 最边上的 d_Matrix_part 为 zeta对zn的导数
         call this % loss_function % df(t, Z, d_Matrix_part)
             
         end associate
+        
         
         do layer_index=l_count-1, 1, -1
             associate (                                                             &              

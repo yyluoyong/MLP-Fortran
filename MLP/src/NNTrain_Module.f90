@@ -8,9 +8,9 @@ use mod_NNStructure
 use mod_Log
 implicit none    
 
-!---------------------------------
+!-----------------------------------
 ! 工作类：神经网络训练的方法和数据 |
-!---------------------------------
+!-----------------------------------
 type, public :: NNTrain
 
     !* 单个样本的误差阈值
@@ -91,13 +91,14 @@ type, public :: NNTrain
 contains   !|
 !||||||||||||
 
-    procedure, private :: init => m_init
+    procedure, public :: init => m_init
     
-    procedure, public :: set_caller_name => m_set_caller_name
+    procedure, public :: set_caller_name   => m_set_caller_name
+	procedure, public :: set_train_type    => m_set_train_type
+    procedure, public :: set_loss_function => m_set_loss_function
     procedure, public :: set_weight_threshold_init_methods_name => &
         m_set_weight_threshold_init_methods_name
-    procedure, public :: set_train_type => m_set_train_type
-    procedure, public :: set_loss_function => m_set_loss_function
+    
     
     procedure, public :: train => m_train
     procedure, public :: sim   => m_sim
@@ -226,11 +227,9 @@ contains   !|
     !====
 
     !* 训练函数
-    subroutine m_train( this, caller_name, X, t, y )
+    subroutine m_train( this, X, t, y )
     implicit none
         class(NNTrain), intent(inout) :: this
-        !* 调用者信息，值可以为 ''，此时使用默认配置信息
-        character(len=*), intent(in) :: caller_name
         !* X 是输入值，t 是实际输出，y 是网络预测输出
         real(PRECISION), dimension(:,:), intent(in) :: X
         real(PRECISION), dimension(:,:), intent(in) :: t
@@ -241,10 +240,7 @@ contains   !|
         real(PRECISION) :: err, acc
         character(len=180) :: msg
         
-        X_shape = SHAPE(X)
-        
-        !* 初始化
-        call this % init( caller_name, X, t )
+        X_shape = SHAPE(X)        
         
         do t_step=1, this % train_step
         
@@ -587,7 +583,7 @@ contains   !|
     implicit none
         class(NNTrain), intent(inout) :: this
         class(BaseLossFunction), target, intent(in) :: loss_fun
-    
+        
         call this % my_NNStructure % set_loss_function( loss_fun )
         
         call LogDebug("NNTrain: SUBROUTINE m_set_loss_function")

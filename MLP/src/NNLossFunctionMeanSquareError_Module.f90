@@ -15,6 +15,8 @@ contains   !|
 
     procedure, public :: f  => m_fun_MeanSquareError
     procedure, public :: df => m_df_MeanSquareError
+    
+    procedure, public :: print_msg => m_print_msg
 
 end type MeanSquareError
 !===================
@@ -22,6 +24,7 @@ end type MeanSquareError
     !-------------------------
     private :: m_fun_MeanSquareError
     private :: m_df_MeanSquareError
+    private :: m_print_msg
     !-------------------------
 	
 !||||||||||||    
@@ -63,5 +66,16 @@ contains   !|
 	end subroutine
 	!====
 	
+    
+    !*  ‰≥ˆ–≈œ¢
+	subroutine m_print_msg( this )
+	implicit none
+		class(MeanSquareError), intent(inout) :: this
+
+        write(*, *) "Mean Square Error Function."
+        
+        return
+	end subroutine
+	!====
 
 end module

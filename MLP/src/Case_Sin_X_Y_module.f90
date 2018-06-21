@@ -74,7 +74,10 @@ contains   !|
         
         allocate( y, SOURCE = this % y_train)
         
-        call this % my_NNTrain % train('Sin_X_Y_Case', this % X_train, &
+        call this % my_NNTrain % init('Sin_X_Y_Case', this % X_train, &
+            this % y_train)
+        
+        call this % my_NNTrain % train(this % X_train, &
             this % y_train, y)
         
         return
