@@ -3,6 +3,7 @@ use mod_Precision
 use mod_Log
 use mod_BaseCalculationCase
 use mod_NNTrain
+use mod_CrossEntropy
 implicit none    
 
 !-----------------------------
@@ -31,13 +32,19 @@ type, extends(BaseCalculationCase), public :: MoonCase
     real(kind=PRECISION), dimension(:,:), allocatable, public :: X_train
     !* 训练数据对应的目标值，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train
+    !* 训练数据的预测结果
+    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train_pre
     
     !* 测试数据，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: X_test
     !* 测试数据对应的目标值，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y_test
+    !* 测试数据的预测结果
+    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_test_pre
     
     type(NNTrain), pointer :: my_NNTrain
+    
+    type(CrossEntropyWithSoftmax), pointer :: cross_entropy_function
     
 !||||||||||||    
 contains   !|
@@ -71,22 +78,40 @@ contains   !|
     implicit none
         class(MoonCase), intent(inout) :: this
     
-        real(PRECISION), dimension(:,:), allocatable :: y
-    
         call this % allocate_memory()
-        
-        allocate( y, SOURCE = this % y_train)
         
         call this % load_Moon_data()
         
-        call this % normalization(this % X_train)
+        associate (                            &
+            X_train     => this % X_train,     &
+            y_train     => this % y_train,     &
+            y_train_pre => this % y_train_pre, &
+            X_test      => this % X_test,      &
+            y_test      => this % y_test,      &
+            y_test_pre  => this % y_test_pre   &              
+        )
         
-        call this % my_NNTrain % init('MoonCase', this % X_train, &
-            this % y_train)
+        call this % normalization(X_train)
         
-        call this % my_NNTrain % train(this % X_train, &
-            this % y_train, y)
+        call this % my_NNTrain % init('MoonCase', X_train, y_train)
         
+        call this % my_NNTrain % set_train_type('classification')
+        
+        call this % my_NNTrain % &
+            set_weight_threshold_init_methods_name('xavier')
+            
+        call this % my_NNTrain % set_loss_function(this % cross_entropy_function)
+            
+        call this % my_NNTrain % train(X_train, &
+            y_train, y_train_pre)
+        
+        call this % normalization(X_test)
+            
+        call this % my_NNTrain % sim(X_test, &
+            y_test, y_test_pre)
+        
+        end associate
+            
         return
     end subroutine m_main
     !====
@@ -185,13 +210,17 @@ contains   !|
         
         allocate( this % X_train(sample_point_X, count_train_sample) )        
         allocate( this % y_train(sample_point_y, count_train_sample) )
+        allocate( this % y_train_pre(sample_point_y, count_train_sample) )
         
         allocate( this % X_test(sample_point_X, count_test_sample) )
-        allocate( this % y_test(sample_point_y, count_test_sample) )       
+        allocate( this % y_test(sample_point_y, count_test_sample) )
+        allocate( this % y_test_pre(sample_point_y, count_test_sample) ) 
         
         end associate
         
         allocate( this % my_NNTrain )
+        
+        allocate( this % cross_entropy_function )
         
         this % is_allocate_done = .true.
         
@@ -209,11 +238,14 @@ contains   !|
         
         deallocate( this % X_train )        
         deallocate( this % y_train )
+        deallocate( this % y_train_pre )
         
         deallocate( this % X_test )
-        deallocate( this % y_test )    
+        deallocate( this % y_test ) 
+        deallocate( this % y_test_pre )
         
         deallocate( this % my_NNTrain )
+        deallocate( this % cross_entropy_function )
         
         this % is_allocate_done = .false.
         

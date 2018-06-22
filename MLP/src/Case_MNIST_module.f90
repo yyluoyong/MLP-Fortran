@@ -84,8 +84,6 @@ contains   !|
     implicit none
         class(MNISTCase), intent(inout) :: this
     
-        real(kind=PRECISION), dimension(:,:), allocatable :: y
-    
         call this % allocate_memory()
         
         call this % load_MNIST_data()
