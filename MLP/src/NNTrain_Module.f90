@@ -330,7 +330,7 @@ contains   !|
             max_err_to_string, acc_to_string
         character(len=180) :: msg
         
-        call m_get_total_error( t, y, err, max_err )
+        call m_get_total_error( this % train_type, t, y, err, max_err )
         
         write(UNIT=step_to_string, FMT='(I15)') step  
         write(UNIT=err_to_string, FMT='(ES16.5)') err
@@ -367,23 +367,50 @@ contains   !|
     !====
     
     !* 静态子程序，误差计算
-    subroutine m_get_total_error( t, y, err, max_err )
+    subroutine m_get_total_error( train_type, t, y, err, max_err )
     implicit none
+        character(len=*), intent(in) :: train_type
         !* t 是实际输出，y 是网络预测输出
         real(PRECISION), dimension(:,:), intent(in) :: t
         real(PRECISION), dimension(:,:), intent(in) :: y
         real(PRECISION), intent(inout) :: err, max_err
         
         integer :: t_shape(2)   
-        integer :: i
-        
+        integer :: i, j
+        real(PRECISION) :: tmp
+                
         t_shape = SHAPE(t)
         
-        err = SUM((t - y)*(t - y))
-        err = err / ( t_shape(1) * t_shape(2) )
-        err = SQRT(err)
+        if (TRIM(ADJUSTL(train_type)) == 'regression') then
+                  
+            err = SUM((t - y)*(t - y))
+            err = err / ( t_shape(1) * t_shape(2) )
+            err = SQRT(err)
         
-        max_err = MAXVAL(ABS(t - y))
+            max_err = MAXVAL(ABS(t - y))
+        else if (TRIM(ADJUSTL(train_type)) == 'classification') then
+            
+            err = 0
+            max_err = 0
+            
+            do j=1, t_shape(2)
+                tmp = 0
+                do i=1, t_shape(1)
+                    !tmp = -DOT_PRODUCT(t(:,j), LOG(y(:,j)))
+                    if (abs(t(i,j)) < 1.E-16 .and. abs(y(i,j)) < 1.E-16) then
+                        !PASS
+                    else
+                        tmp = tmp - t(i,j) * LOG(y(i,j))
+                    end if
+                end do
+                if (tmp > max_err)  max_err = tmp
+                err = err + tmp
+            end do
+            
+            write(*, *) MINVAL(y)
+            
+            err = err / t_shape(2)
+        end if
         
         call LogDebug("NNTrain: SUBROUTINE m_get_total_error")
              

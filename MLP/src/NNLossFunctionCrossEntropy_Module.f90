@@ -60,7 +60,19 @@ contains   !|
 		real(PRECISION), dimension(:), intent(in) :: y
         real(PRECISION), dimension(:), intent(inout) :: dy
 	
-		dy = -t / y
+        integer :: count
+        integer :: i
+        
+        count = SIZE(t)
+        
+        do i=1, count
+            if (abs(t(i)) < 1.E-16) then
+                dy(i) = 0
+            else
+		        dy(i) = -t(i) / y(i)
+            end if
+        end do
+        write(*, *) minval(dy), maxval(dy)
 	
 		return
 	end subroutine
