@@ -13,8 +13,8 @@ type, extends(BaseLossFunction), public :: MeanSquareError
 contains   !|
 !||||||||||||
 
-    procedure, public :: f  => m_fun_MeanSquareError
-    procedure, public :: df => m_df_MeanSquareError
+    procedure, public :: loss  => m_fun_MeanSquareError
+    procedure, public :: d_loss => m_df_MeanSquareError
     
     procedure, public :: print_msg => m_print_msg
 
@@ -48,24 +48,37 @@ contains   !|
     end subroutine
     !====
     
-	!* MeanSquareError函数的一阶导数
+    !* 损失函数对最后一层激活函数自变量的导数
 	!* 返回对网络预测向量的导数
-	subroutine m_df_MeanSquareError( this, t, y, dy )
+	subroutine m_df_MeanSquareError( this, t, r, z, act_fun, dloss )
+    use mod_BaseActivationFunction
 	implicit none
-        class(MeanSquareError), intent(inout) :: this
-		!* t 是目标输出向量，对于分类问题，
-		!* 它是one-hot编码的向量
-		!* y 是网络预测向量
+		class(MeanSquareError), intent(inout) :: this
+		!* t 是目标输出向量，
+        !* r 是最后一层激活函数的自变量，
+        !* z 是网络预测向量
+        !* act_fun 是最后一层的激活函数，
+        !* dloss 是损失函数对 r 的导数
 		real(PRECISION), dimension(:), intent(in) :: t
-		real(PRECISION), dimension(:), intent(in) :: y
-        real(PRECISION), dimension(:), intent(inout) :: dy
-	
-		dy = y - t
-	
-		return
+		real(PRECISION), dimension(:), intent(in) :: r
+        real(PRECISION), dimension(:), intent(in) :: z
+        class(BaseActivationFunction), pointer, intent(in) :: act_fun
+        real(PRECISION), dimension(:), intent(inout) :: dloss
+
+        real(PRECISION), dimension(:), allocatable :: df_to_dr
+        
+        allocate( df_to_dr, SOURCE=r )
+        
+        !* df_to_dr 为 f'(r)
+        call act_fun % df_vect( r, df_to_dr )
+        
+        dloss = (z - t) * df_to_dr
+        
+        deallocate( df_to_dr )
+        
+        return
 	end subroutine
-	!====
-	
+	!==== 
     
     !* 输出信息
 	subroutine m_print_msg( this )

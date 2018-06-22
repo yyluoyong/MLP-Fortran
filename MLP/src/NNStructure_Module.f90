@@ -470,33 +470,57 @@ contains   !|
         
         l_count = this % layers_count
                       
-        !* zeta对zn的导数
-        associate (                                                    &              
-            d_Matrix_part => this % pt_Layer(l_count) % d_Matrix_part, &
-            Z             => this % pt_Layer(l_count) % Z,             &
-            t             => this % t                                  &
+        !---------------------------------
+        !* (1): 倒数第一层
+        !* zeta对rn的导数
+        associate (                                                  &              
+            matrix_part => this % pt_Layer(l_count) % d_Matrix_part, &
+            R           => this % pt_Layer(l_count) % R,             &
+            Z           => this % pt_Layer(l_count) % Z,             &
+            act_fun     => this % pt_Layer(l_count) % act_fun,       &
+            t           => this % t                                  &
         )
         
-        !* 最边上的 d_Matrix_part 为 zeta对zn的导数
-        call this % loss_function % df(t, Z, d_Matrix_part)
+        !* 最边上的 d_Matrix_part 为 zeta对rn的导数
+        call this % loss_function % d_loss(t, R, Z, act_fun, matrix_part)
             
         end associate
+        !---------------------------------
         
         
-        do layer_index=l_count-1, 1, -1
-            associate (                                                             &              
-                M => this % layers_node_count(layer_index),                         &
-                N => this % layers_node_count(layer_index + 1),                     &
-                R => this % pt_Layer(layer_index + 1) % R,                          &
-                W => this % pt_W(layer_index + 1) % W,                              &
+        !---------------------------------
+        !* (2): 倒数第二层
+        if (l_count > 1) then
+            associate (                                                        &              
+                W                => this % pt_W(l_count) % W,                  &
+                matrix_part_next => this % pt_Layer(l_count) % d_Matrix_part,  &
+                matrix_part      => this % pt_Layer(l_count-1) % d_Matrix_part &
+            )
+                
+            matrix_part = MATMUL(TRANSPOSE(W), matrix_part_next)   
+            
+            end associate
+        end if
+        !---------------------------------
+        
+        
+        !---------------------------------
+        !* (3): 其余层
+        do layer_index=l_count-2, 1, -1
+            associate (                                                             &                              
+                W                => this % pt_W(layer_index + 1) % W,               &
+                M                => this % layers_node_count(layer_index),          &
+                N                => this % layers_node_count(layer_index+1),        &
+                R                => this % pt_Layer(layer_index+1) % R,             &
                 matrix_part_next => this % pt_Layer(layer_index+1) % d_Matrix_part, &
-                matrix_part => this % pt_Layer(layer_index) % d_Matrix_part         &
+                matrix_part      => this % pt_Layer(layer_index) % d_Matrix_part,   &
+                act_fun          => this % pt_Layer(layer_index+1) % act_fun        &
             )
             
             allocate( WT_GammaT(M, N) )
                 
             do j=1, N
-                call this % pt_Layer(layer_index+1) % act_fun % df( j, R, df_to_dr ) 
+                call act_fun % df( j, R, df_to_dr ) 
                 WT_GammaT(:, j) = W(j, :) * df_to_dr
             end do
             
@@ -506,6 +530,7 @@ contains   !|
             
             end associate    
         end do
+        !---------------------------------
         
         call LogDebug("NNStructure: SUBROUTINE m_get_all_d_Matrix_part")
             

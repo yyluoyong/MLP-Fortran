@@ -3,6 +3,7 @@
 !* 		当修改该参数之后，还需要相应修改：                                 *!
 !*		（1）NNHiddenLayerNodeCount.parameter 文件，设置各隐藏层结点数量.  *!
 !*		（2）NNLearningRate.parameter 文件，设置各层权值、阈值学习速率.    *!
+!*		（3）NNActivationFunctionList.parameter 文件，设置各层的激活函数.  *!
 !* TRAIN_STEP:	训练总步数											       *!
 !* ERROR_SINGLE: 单个样本误差阈值									       *!
 !*		注：此参数暂时还未在程序使用.                                      *!

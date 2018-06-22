@@ -50,7 +50,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     
     type(NNTrain), pointer :: my_NNTrain
     
-    type(CrossEntropy), pointer :: cross_entropy_function
+    type(CrossEntropyWithSoftmax), pointer :: cross_entropy_function
     
 !||||||||||||    
 contains   !|

@@ -398,7 +398,7 @@ contains   !|
                 do i=1, t_shape(1)
                     !tmp = -DOT_PRODUCT(t(:,j), LOG(y(:,j)))
                     if (abs(t(i,j)) < 1.E-16 .and. abs(y(i,j)) < 1.E-16) then
-                        !PASS
+                        continue
                     else
                         tmp = tmp - t(i,j) * LOG(y(i,j))
                     end if
@@ -407,7 +407,7 @@ contains   !|
                 err = err + tmp
             end do
             
-            write(*, *) MINVAL(y)
+            !write(*, *) MINVAL(y)
             
             err = err / t_shape(2)
         end if

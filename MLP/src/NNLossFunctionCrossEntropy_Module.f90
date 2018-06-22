@@ -6,19 +6,19 @@ implicit none
 !-------------------
 ! 工作类：损失函数 |
 !-------------------
-type, extends(BaseLossFunction), public :: CrossEntropy
+type, extends(BaseLossFunction), public :: CrossEntropyWithSoftmax
     !* 继承自BaseLossFunction并实现其接口
 
 !||||||||||||    
 contains   !|
 !||||||||||||
 
-    procedure, public :: f  => m_fun_CrossEntropy
-    procedure, public :: df => m_df_CrossEntropy
+    procedure, public :: loss  => m_fun_CrossEntropy
+    procedure, public :: d_loss => m_df_CrossEntropy
     
     procedure, public :: print_msg => m_print_msg
 
-end type CrossEntropy
+end type CrossEntropyWithSoftmax
 !===================
 
     !-------------------------
@@ -34,7 +34,7 @@ contains   !|
     !* CrossEntropy函数
     subroutine m_fun_CrossEntropy( this, t, y, ans )
     implicit none
-        class(CrossEntropy), intent(inout) :: this
+        class(CrossEntropyWithSoftmax), intent(inout) :: this
         !* t 是目标输出向量，对于分类问题，
 		!* 它是one-hot编码的向量
 		!* y 是网络预测向量
@@ -48,33 +48,26 @@ contains   !|
     end subroutine
     !====
     
-	!* CrossEntropy函数的一阶导数
+	!* CrossEntropy损失函数对最后一层激活函数自变量的导数
 	!* 返回对网络预测向量的导数
-	subroutine m_df_CrossEntropy( this, t, y, dy )
+	subroutine m_df_CrossEntropy( this, t, r, z, act_fun, dloss )
+    use mod_BaseActivationFunction
 	implicit none
-        class(CrossEntropy), intent(inout) :: this
-		!* t 是目标输出向量，对于分类问题，
-		!* 它是one-hot编码的向量
-		!* y 是网络预测向量
+		class(CrossEntropyWithSoftmax), intent(inout) :: this
+		!* t 是目标输出向量，
+        !* r 是最后一层激活函数的自变量，
+        !* z 是网络预测向量
+        !* act_fun 是最后一层的激活函数，
+        !* dloss 是损失函数对 r 的导数
 		real(PRECISION), dimension(:), intent(in) :: t
-		real(PRECISION), dimension(:), intent(in) :: y
-        real(PRECISION), dimension(:), intent(inout) :: dy
-	
-        integer :: count
-        integer :: i
+		real(PRECISION), dimension(:), intent(in) :: r
+        real(PRECISION), dimension(:), intent(in) :: z
+        class(BaseActivationFunction), pointer, intent(in) :: act_fun
+        real(PRECISION), dimension(:), intent(inout) :: dloss
         
-        count = SIZE(t)
+        dloss = (z - t) 
         
-        do i=1, count
-            if (abs(t(i)) < 1.E-16) then
-                dy(i) = 0
-            else
-		        dy(i) = -t(i) / y(i)
-            end if
-        end do
-        write(*, *) minval(dy), maxval(dy)
-	
-		return
+        return
 	end subroutine
 	!====
 	
@@ -82,7 +75,7 @@ contains   !|
     !* 输出信息
 	subroutine m_print_msg( this )
 	implicit none
-		class(CrossEntropy), intent(inout) :: this
+		class(CrossEntropyWithSoftmax), intent(inout) :: this
 
         write(*, *) "Cross Entropy Function."
         
