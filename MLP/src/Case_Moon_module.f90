@@ -13,16 +13,17 @@ type, extends(BaseCalculationCase), public :: MoonCase
     !* 继承自BaseCalculationCase并实现其接口
     
     character(len=180), private :: train_data_file = &
-        './Data/MoonCase/moon_data.txt'
+        !'./Data/MoonCase/moon_data.txt'
+        './Data/MoonCase/random_double_moon_data.dat'
 
     !* 是否初始化内存空间
     logical, private :: is_allocate_done = .false.
     
     !* 训练集样本数量
-    integer, public :: count_train_sample = 2000
+    integer, public :: count_train_sample = 1000
     
     !* 测试集样本数量
-    integer, public :: count_test_sample = 1000
+    integer, public :: count_test_sample = 2000
     
     !* 单个样本的数据量
     integer, public :: sample_point_X = 2

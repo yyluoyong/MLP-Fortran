@@ -388,6 +388,7 @@ contains   !|
             err = SQRT(err)
         
             max_err = MAXVAL(ABS(t - y))
+            
         else if (TRIM(ADJUSTL(train_type)) == 'classification') then
             
             err = 0
@@ -690,6 +691,8 @@ contains   !|
         
         integer :: l_count
         integer :: i
+        character(len=180) :: msg
+        character(len=20) :: index_to_string
         
         l_count = this % layers_count
         
@@ -702,8 +705,12 @@ contains   !|
         end do
         
         call LogInfo("Activation Function List: ")
-        do i=1, l_count       
-            call LogInfo(this % act_fun_name_list(i))
+        do i=1, l_count    
+            write(UNIT=index_to_string, FMT='(I15)') i
+            msg = "--> layer index = " // TRIM(ADJUSTL(index_to_string)) // &
+                ", activation function = " // &
+                TRIM(ADJUSTL(this % act_fun_name_list(i)))
+            call LogInfo(msg)
         end do
         
         close(unit=30)

@@ -14,7 +14,7 @@
 !---------------------------------------------------------------------------!
 &NNParameter_NameList
 HIDDEN_LAYERS_COUNT = 1
-TRAIN_STEP          = 300
+TRAIN_STEP          = 1000
 ERROR_SINGLE        = 0.001
 ERROR_AVG           = 0.001
 BP_ALGORITHM        = 'standard'

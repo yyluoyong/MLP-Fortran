@@ -15,17 +15,10 @@ implicit none
     type, public :: NNStructure
 
         ! 是否初始化完成的标识
-        logical, private :: is_init = .false.
+        logical, private :: is_init_basic = .false.
         
         ! 是否初始化内存空间
         logical, private :: is_allocate_done = .false.
-    
-        ! 是否初始化激活函数
-        logical, private :: is_init_act_fun = .false.
-        
-        ! 是否初始化输入层、输出层
-        logical, private :: is_init_input_layer = .false.
-        logical, private :: is_init_output_layer = .false.
         
         ! 是否初始化权值矩阵、阈值
         logical, private :: is_init_weight = .false.
@@ -65,13 +58,14 @@ implicit none
     contains   !|
     !||||||||||||
 
-        procedure, public :: init_basic => m_init
-        procedure, public :: get_init_status => c_isInit
+        procedure, public :: init_basic            => m_init_basic
+        procedure, public :: get_init_basic_status => c_is_init_basic
                        
         procedure, public :: forward_propagation  => m_forward_propagation
         procedure, public :: backward_propagation => m_backward_propagation
         
-        procedure, public :: set_loss_function => m_set_loss_function
+        procedure, public :: set_loss_function             => m_set_loss_function
+		procedure, public :: set_activation_function_layer => m_set_act_fun_layer
         
         procedure, private :: get_all_derivative_variable => m_get_all_derivative_variable
                 
@@ -79,11 +73,9 @@ implicit none
         procedure, private :: allocate_memory    => m_allocate_memory
         procedure, private :: deallocate_pointer => m_deallocate_pointer
         procedure, private :: deallocate_memory  => m_deallocate_memory
-        
-        procedure, public :: init_activation_function => m_init_activation_function
-        
-        procedure, private :: init_input_layer  => m_init_input_layer
-        procedure, private :: init_output_layer => m_init_output_layer
+       
+        procedure, private :: set_input_layer  => m_set_input_layer
+        procedure, private :: set_output_layer => m_set_output_layer
         
         procedure, private :: init_layer_weight    => m_init_layer_weight
         procedure, private :: init_layer_threshold => m_init_layer_threshold
@@ -105,17 +97,17 @@ implicit none
 
     
     !-------------------------
-    private :: m_init
-    private :: c_isInit
+    private :: m_init_basic
+    private :: c_is_init_basic
     
 	private :: m_allocate_pointer
 	private :: m_deallocate_pointer
     private :: m_allocate_memory
     private :: m_deallocate_memory
     
-    private :: m_init_activation_function
-    private :: m_init_input_layer
-    private :: m_init_output_layer
+    private :: m_set_act_fun_layer
+    private :: m_set_input_layer
+    private :: m_set_output_layer
     
     private :: m_init_layer_weight
     private :: m_init_layer_threshold
@@ -141,15 +133,14 @@ contains   !|
     
     !* 初始化：
     !* (1). 给定网络基本结构、申请内存空间;
-    !* (2). 随机初始化权值、阈值;
-    !* (3). 初始化激活函数.
-    subroutine m_init( this, l_count, l_node_count )
+    !* (2). 随机初始化权值、阈值.
+    subroutine m_init_basic( this, l_count, l_node_count )
     implicit none
         class(NNStructure), intent(inout) :: this
         integer, intent(in) :: l_count
         integer, dimension(:), intent(in) :: l_node_count
 
-        if( .not. this % is_init ) then
+        if( .not. this % is_init_basic ) then
             
             this % layers_count = l_count
 			
@@ -164,178 +155,44 @@ contains   !|
             call this % init_layer_weight()
             call this % init_layer_threshold()
             
-            this % is_init = .true.
+            this % is_init_basic = .true.
             
-            call LogDebug("NNStructure: SUBROUTINE m_init")
+            call LogDebug("NNStructure: SUBROUTINE m_init_basic")
         end if
 
         return
-    end subroutine m_init
+    end subroutine m_init_basic
     !====
     
     !* 是否初始化
-    subroutine c_isInit( this, init )
+    subroutine c_is_init_basic( this, init )
     implicit none
         class(NNStructure), intent(inout)  :: this
         logical,            intent(out)    :: init
-
-        if (this % is_allocate_done    .and. this % is_init_act_fun .and. &
-            this % is_init_input_layer .and. this % is_init_output_layer) then
-            this % is_init = .true.
-        end if
         
-        init = this % is_init
+        init = this % is_init_basic
 
         return
-    end subroutine c_isInit
-    !==== 
-    
-    
-    !* 初始化指定层的激活函数
-    subroutine m_init_activation_function( this, layer_index, act_fun )
-    implicit none
-        class(NNStructure), intent(inout) :: this
-        integer, intent(in) :: layer_index
-        class(BaseActivationFunction), target, intent(in) :: act_fun
-    
-        this % pt_Layer(layer_index) % act_fun => act_fun
-        
-        call LogDebug("NNStructure: SUBROUTINE m_init_activation_function")
-        
-        return
-    end subroutine m_init_activation_function
-    !====
-    
-    !* 设置激活函数
-    subroutine m_set_loss_function( this, loss_fun )
-    use mod_CrossEntropy
-    implicit none
-        class(NNStructure), intent(inout) :: this
-        class(BaseLossFunction), target, intent(in) :: loss_fun
-        
-        this % loss_function => loss_fun        
-        
-        this % is_init_loss_fun = .true.
-        
-        call LogDebug("NNStructure: SUBROUTINE m_set_loss_function")
-        
-        return
-    end subroutine m_set_loss_function
-    !====
-    
-    !* 初始化输入层
-    subroutine m_init_input_layer( this, X_in )
-    implicit none
-        class(NNStructure), intent(inout) :: this
-        real(PRECISION), dimension(:), intent(in) :: X_in 
-    
-        this % X = X_in
-        this % pt_Layer( 0 ) % Z = X_in
-        this % is_init_input_layer = .true.
-        
-        call LogDebug("NNStructure: SUBROUTINE m_init_input_layer")
-        
-        return
-    end subroutine m_init_input_layer
-    !====
-    
-    !* 初始化输出层
-    subroutine m_init_output_layer( this, t )
-    implicit none
-        class(NNStructure), intent(inout) :: this
-        real(PRECISION), dimension(:), intent(in) :: t 
-        
-        this % t = t
-        this % is_init_output_layer = .true.
-        
-        call LogDebug("NNStructure: SUBROUTINE m_init_output_layer")
-        
-        return
-    end subroutine m_init_output_layer
-    !====
-    
-    !* 随机初始化阈值，默认初始化到(-1,1)
-    !* 在Train方法中，可以重新设置初始化.
-    subroutine m_init_layer_weight( this )
-    implicit none
-        class(NNStructure), intent(inout) :: this
-     
-        integer :: layer_index, l_count
-        
-        l_count = this % layers_count
-        
-        call RANDOM_SEED()
-        
-        call LogInfo("NNStructure: SUBROUTINE m_init_layer_weight")
-        
-        do layer_index=1, l_count
-            associate (                            &              
-                W => this % pt_W(layer_index) % W  &
-            )
-                
-            call RANDOM_NUMBER(W)
-            W = 2.0 * W - 1.0
-            
-            end associate
-        end do
-        
-        this % is_init_weight = .true.
-        
-        call LogDebug("NNStructure: SUBROUTINE m_init_layer_weight")
-        
-        return
-    end subroutine m_init_layer_weight
-    !====
-    
-    !* 随机初始化阈值，默认初始化到(-1,1)
-    !* 在Train方法中，可以重新设置初始化.
-    subroutine m_init_layer_threshold( this )
-    implicit none
-        class(NNStructure), intent(inout) :: this
-     
-        integer :: layer_index, l_count
-        
-        l_count = this % layers_count
-        
-        call RANDOM_SEED()
-        
-        call LogInfo("NNStructure: SUBROUTINE m_init_layer_threshold")
-        
-        do layer_index=1, l_count
-            associate (                                        &              
-                Theta => this % pt_Theta(layer_index) % Theta  &
-            )
-                
-            call RANDOM_NUMBER(Theta) 
-            Theta = 2.0 * Theta - 1.0
-            
-            end associate
-        end do
-  
-        this % is_init_threshold = .true.
-        
-        call LogDebug("NNStructure: SUBROUTINE m_init_layer_threshold")
-        
-        return
-    end subroutine m_init_layer_threshold
-    !====
+    end subroutine c_is_init_basic
+    !====   
     
     !* 前向计算，根据输入值，计算神经网络各层的值，
     !* 并返回预测值
+	!* Tips：需要初始化结构、设置各层激活函数.
     subroutine m_forward_propagation( this, X, t, y )
     implicit none
         class(NNStructure), intent(inout) :: this
         !* X 是输入值，t 是实际输出，y 是网络预测输出
         real(PRECISION), dimension(:), intent(in) :: X
         real(PRECISION), dimension(:), intent(in) :: t
-        real(PRECISION), dimension(:), intent(inout) :: y
+        real(PRECISION), dimension(:), intent(out) :: y
         
         integer :: l_count
         
         l_count = this % layers_count
         
-        call this % init_input_layer( X )
-        call this % init_output_layer( t )
+        call this % set_input_layer( X )
+        call this % set_output_layer( t )
             
         !* 前向计算：计算所有层中的局部变量 S、R、Z
         call this % get_all_layer_local_var()
@@ -347,24 +204,23 @@ contains   !|
         return
     end subroutine m_forward_propagation
     !====
-    
-
       
     !* 反向计算，计算误差函数对神经网络各层的导数
+	!* Tips：需要初始化结构、设置各层激活函数、设置损失函数.
     subroutine m_backward_propagation( this, X, t, y )
     implicit none
         class(NNStructure), intent(inout) :: this
         !* X 是输入值，t 是实际输出，y 是网络预测输出
         real(PRECISION), dimension(:), intent(in) :: X
         real(PRECISION), dimension(:), intent(in) :: t
-        real(PRECISION), dimension(:), intent(inout) :: y
+        real(PRECISION), dimension(:), intent(out) :: y
         
         integer :: M, N, layer_index, l_count
         
         l_count = this % layers_count
         
-        call this % init_input_layer( X )
-        call this % init_output_layer( t )
+        call this % set_input_layer( X )
+        call this % set_output_layer( t )
         
         !* 前向计算：计算所有层中的局部变量 S、R、Z
         call this % get_all_layer_local_var()
@@ -395,7 +251,6 @@ contains   !|
     end subroutine m_backward_propagation
     !====
 
-
     !* 计算所有求导变量的值
     subroutine m_get_all_derivative_variable( this )
     implicit none
@@ -414,8 +269,7 @@ contains   !|
         
         return
     end subroutine m_get_all_derivative_variable
-    !====
-    
+    !====  
     
     !* 计算所有层中的局部变量 S、R、Z：
     !*      激活函数、输入层、W、Theta已随机初始化
@@ -428,24 +282,24 @@ contains   !|
         l_count = this % layers_count
         
         do layer_index=1, l_count     
-            associate (                                        &              
-                W     => this % pt_W(layer_index) % W,         &
-                Theta => this % pt_Theta(layer_index) % Theta, &
-                S     => this % pt_Layer(layer_index) % S,     &
-                R     => this % pt_Layer(layer_index) % R,     &
-                Z     => this % pt_Layer(layer_index) % Z,     &
-                Z1    => this % pt_Layer(layer_index-1) % Z    &
+            associate (                                            &              
+                W       => this % pt_W(layer_index) % W,           &
+                Theta   => this % pt_Theta(layer_index) % Theta,   &
+                S       => this % pt_Layer(layer_index) % S,       &
+                R       => this % pt_Layer(layer_index) % R,       &
+                Z       => this % pt_Layer(layer_index) % Z,       &
+				act_fun => this % pt_Layer(layer_index) % act_fun, &
+                Z_pre   => this % pt_Layer(layer_index-1) % Z      &
             )
         
             !* S^{k} = W^{k}*Z^{k-1}
-            S = MATMUL(W, Z1) 
+            S = MATMUL(W, Z_pre) 
             
             !* R^{k} = S^{k} - Theta^{k}
             R = S - Theta
                 
             !* Z^{k} = f(R^{k})
-            !call this % my_act_fun % f_vect( R, Z )
-            call this % pt_Layer(layer_index) % act_fun % f_vect( R, Z )      
+            call act_fun % f_vect( R, Z )      
             
             end associate                                 
         end do
@@ -518,7 +372,8 @@ contains   !|
             )
             
             allocate( WT_GammaT(M, N) )
-                
+            
+			!* 当前层为k，计算(Λ^{k+1} W^{k+1})^T			
             do j=1, N
                 call act_fun % df( j, R, df_to_dr ) 
                 WT_GammaT(:, j) = W(j, :) * df_to_dr
@@ -574,8 +429,7 @@ contains   !|
         
         return
     end subroutine m_get_all_dTheta 
-    !====    
-    
+    !====       
     
     !* 计算目标层的dW
     subroutine m_get_layer_dW( this, layer_index )
@@ -585,31 +439,59 @@ contains   !|
         
         integer :: M, N
         integer :: i, j
-        real(PRECISION) :: r, df_to_dr
-        
+        real(PRECISION) :: r, df_to_dr        			
         
         !* 目标层输入数组大小
         M = this % layers_node_count(layer_index - 1)
         !* 目标层输出数组大小 
         N = this % layers_node_count(layer_index)
 
+		!---------------------------------
+		!* (1)：最后一层
+		!* 最后一层公式略有区别，详情见PDF文档.
+		if (layer_index == this % layers_count) then
+			
+			associate (                                                      &                              
+                dW          => this % pt_Layer(layer_index) % dW,            &
+                matrix_part => this % pt_Layer(layer_index) % d_Matrix_part, &
+                Z_pre       => this % pt_Layer(layer_index-1) % Z            &          
+			)			
+			
+			!* dW^{k}_{ij} = z^{k-1}_j * E_i * d_Matrix_part
+			do i=1, N 
+				do j=1, M
+					dW(i, j) = Z_pre(j) * matrix_part(i)
+				end do
+			end do
+
+			end associate
+			
+			return
+		end if	
+		!---------------------------------
+		
+		!---------------------------------
+		!* (2)：其余层
         associate (                                                      &                              
             dW          => this % pt_Layer(layer_index) % dW,            &
             R           => this % pt_Layer(layer_index) % R,             &
             matrix_part => this % pt_Layer(layer_index) % d_Matrix_part, &
-            Z1          => this % pt_Layer(layer_index-1) % Z            &          
+			act_fun     => this % pt_Layer(layer_index) % act_fun,       &
+            Z_pre       => this % pt_Layer(layer_index-1) % Z            &          
         )
         
         do i=1, N     
-            call this % pt_Layer(layer_index) % act_fun % df( i, R, df_to_dr )
+            call act_fun % df( i, R, df_to_dr )
             
+			!* 当前层为k，
             !* dW^{k}_{ij} = f'(r^{k}_i) * z^{k-1}_j * E_i * d_Matrix_part
             do j=1, M
-                dW(i, j) = df_to_dr * Z1(j) * matrix_part(i)
+                dW(i, j) = df_to_dr * Z_pre(j) * matrix_part(i)
             end do
         end do
         
         end associate
+		!---------------------------------
         
         call LogDebug("NNStructure: SUBROUTINE m_get_layer_dW")
         
@@ -629,27 +511,179 @@ contains   !|
         
         N = this % layers_node_count(layer_index)
 
-        associate (                                                     &                              
-            dTheta      => this % pt_Layer(layer_index) % dTheta,       &
-            R           => this % pt_Layer(layer_index) % R,            &
-            matrix_part => this % pt_Layer(layer_index) % d_Matrix_part &
+		!---------------------------------
+		!* (1)：最后一层
+		!* 最后一层公式略有区别，详情见PDF文档.
+		if (layer_index == this % layers_count) then
+			associate (                                                     &      
+                dTheta      => this % pt_Layer(layer_index) % dTheta,       &
+                matrix_part => this % pt_Layer(layer_index) % d_Matrix_part &
+            )
+		
+			!* dTheta^{k}_{i} = -E_i * d_Matrix_part
+			do i=1, N   
+				dTheta(i) = -matrix_part(i)
+			end do
+		
+			end associate
+			
+			return
+		end if
+		!---------------------------------
+		
+		!---------------------------------
+		!* (2)：其余层
+        associate (                                                      &      
+            dTheta      => this % pt_Layer(layer_index) % dTheta,        &
+            R           => this % pt_Layer(layer_index) % R,             &
+            matrix_part => this % pt_Layer(layer_index) % d_Matrix_part, &
+			act_fun     => this % pt_Layer(layer_index) % act_fun        &
         )
         
         do i=1, N          
-            call this % pt_Layer(layer_index) % act_fun % df( i, R, df_to_dr )
+            call act_fun % df( i, R, df_to_dr )
         
-            !* dTheta_{i} = -f'(r_i) * E_i * d_Matrix_part
+			!* 当前层为k，
+            !* dTheta^{k}_{i} = -f'(r^{k}_i) * E_i * d_Matrix_part
             dTheta(i) = -df_to_dr * matrix_part(i)
         end do
         
         end associate
+		!---------------------------------
         
         call LogDebug("NNStructure: SUBROUTINE m_get_layer_dTheta")
         
         return
     end subroutine m_get_layer_dTheta    
     !====
+ 
+	!* 设置输入层
+    subroutine m_set_input_layer( this, X_in )
+    implicit none
+        class(NNStructure), intent(inout) :: this
+        real(PRECISION), dimension(:), intent(in) :: X_in 
     
+        this % X = X_in
+        this % pt_Layer( 0 ) % Z = X_in
+        
+        call LogDebug("NNStructure: SUBROUTINE m_set_input_layer")
+        
+        return
+    end subroutine m_set_input_layer
+    !====
+    
+    !* 设置输出层
+    subroutine m_set_output_layer( this, t )
+    implicit none
+        class(NNStructure), intent(inout) :: this
+        real(PRECISION), dimension(:), intent(in) :: t 
+        
+        this % t = t
+        
+        call LogDebug("NNStructure: SUBROUTINE m_set_output_layer")
+        
+        return
+    end subroutine m_set_output_layer
+    !====
+
+	!* 设置指定层的激活函数
+    subroutine m_set_act_fun_layer( this, layer_index, act_fun )
+    implicit none
+        class(NNStructure), intent(inout) :: this
+        integer, intent(in) :: layer_index
+        class(BaseActivationFunction), target, intent(in) :: act_fun
+    
+        this % pt_Layer(layer_index) % act_fun => act_fun
+        
+        call LogDebug("NNStructure: SUBROUTINE m_set_act_fun_layer")
+        
+        return
+    end subroutine m_set_act_fun_layer
+    !====
+	
+	!* 设置损失函数
+    subroutine m_set_loss_function( this, loss_fun )
+    use mod_CrossEntropy
+    implicit none
+        class(NNStructure), intent(inout) :: this
+        class(BaseLossFunction), target, intent(in) :: loss_fun
+        
+        this % loss_function => loss_fun        
+        
+        this % is_init_loss_fun = .true.
+        
+        call LogDebug("NNStructure: SUBROUTINE m_set_loss_function")
+        
+        return
+    end subroutine m_set_loss_function
+    !====
+
+	!* 随机初始化阈值，默认初始化到(-1,1)
+    !* 在Train方法中，可以重新设置初始化.
+    subroutine m_init_layer_weight( this )
+    implicit none
+        class(NNStructure), intent(inout) :: this
+     
+        integer :: layer_index, l_count
+        
+        l_count = this % layers_count
+        
+        call RANDOM_SEED()
+        
+        call LogInfo("NNStructure: SUBROUTINE m_init_layer_weight")
+        
+        do layer_index=1, l_count
+            associate (                            &              
+                W => this % pt_W(layer_index) % W  &
+            )
+                
+            call RANDOM_NUMBER(W)
+            W = 2.0 * W - 1.0
+            
+            end associate
+        end do
+        
+        this % is_init_weight = .true.
+        
+        call LogDebug("NNStructure: SUBROUTINE m_init_layer_weight")
+        
+        return
+    end subroutine m_init_layer_weight
+    !====
+    
+    !* 随机初始化阈值，默认初始化到(-1,1)
+    !* 在Train方法中，可以重新设置初始化.
+    subroutine m_init_layer_threshold( this )
+    implicit none
+        class(NNStructure), intent(inout) :: this
+     
+        integer :: layer_index, l_count
+        
+        l_count = this % layers_count
+        
+        call RANDOM_SEED()
+        
+        call LogInfo("NNStructure: SUBROUTINE m_init_layer_threshold")
+        
+        do layer_index=1, l_count
+            associate (                                        &              
+                Theta => this % pt_Theta(layer_index) % Theta  &
+            )
+                
+            call RANDOM_NUMBER(Theta) 
+            Theta = 2.0 * Theta - 1.0
+            
+            end associate
+        end do
+  
+        this % is_init_threshold = .true.
+        
+        call LogDebug("NNStructure: SUBROUTINE m_init_layer_threshold")
+        
+        return
+    end subroutine m_init_layer_threshold
+    !====
+	
     !* 申请NNStructure包含的指针所需空间
     subroutine m_allocate_pointer( this )
     implicit none
@@ -745,6 +779,7 @@ contains   !|
         !* 输入层、输出层
         deallocate( this % X )
         deallocate( this % t )
+		deallocate( this % pt_Layer( 0 ) % Z )
         
 		do layer_index=1, this%layers_count
 			
@@ -757,6 +792,7 @@ contains   !|
 			deallocate( this % pt_Layer( layer_index ) % dTheta )
             deallocate( this % pt_Layer( layer_index ) % sum_dW )
 			deallocate( this % pt_Layer( layer_index ) % sum_dTheta )
+			deallocate( this % pt_Layer( layer_index ) % d_Matrix_part )
 			
 		end do
 		

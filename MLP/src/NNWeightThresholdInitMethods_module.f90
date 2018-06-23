@@ -25,7 +25,7 @@ implicit none
     
         logical :: init_status
         
-        call my_NNStructure % get_init_status(init_status)
+        call my_NNStructure % get_init_basic_status(init_status)
         
         if (init_status == .FALSE.) then
             call LogErr("mod_NNWeightThresholdInitMethods: &
