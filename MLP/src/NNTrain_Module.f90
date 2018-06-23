@@ -338,7 +338,7 @@ contains   !|
         
         msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
             ",  err = " // TRIM(ADJUSTL(err_to_string)) // &
-            ",  max_acc = " // TRIM(ADJUSTL(max_err_to_string))
+            ",  max_err = " // TRIM(ADJUSTL(max_err_to_string))
         
         select case (TRIM(ADJUSTL(this % train_type)))
         case ('regression')

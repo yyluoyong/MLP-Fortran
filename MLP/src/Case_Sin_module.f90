@@ -4,6 +4,7 @@ use mod_Log
 use mod_BaseCalculationCase
 use mod_NNTrain
 use mod_Tools
+use mod_MeanSquareError
 implicit none    
 
 !-------------------
@@ -30,7 +31,7 @@ type, extends(BaseCalculationCase), public :: SinCase
     !* 训练数据对应的目标值，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train
     !* 预测结果
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_pre
+    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train_pre
     
     !* 测试数据，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: X_test
@@ -38,6 +39,7 @@ type, extends(BaseCalculationCase), public :: SinCase
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y_test
     
     type(NNTrain), pointer :: my_NNTrain
+	type(MeanSquareError), pointer :: mse_function
     
 !||||||||||||    
 contains   !|
@@ -70,22 +72,30 @@ contains   !|
     subroutine m_main( this )
     implicit none
         class(SinCase), intent(inout) :: this
-    
+
         call this % allocate_memory()
         
         call this % init_train_data()
+		
+		associate (                            &
+            X_train     => this % X_train,     &
+            y_train     => this % y_train,     &
+            y_train_pre => this % y_train_pre  &              
+        )
         
-        call this % my_NNTrain % init('SinCase', this % X_train, &
-            this % y_train)   
+        call this % my_NNTrain % init('SinCase', X_train, y_train)   
         
         call this % my_NNTrain % &
-            set_weight_threshold_init_methods_name('xavier')     
+            set_weight_threshold_init_methods_name('xavier') 
+
+		call this % my_NNTrain % set_loss_function(this % mse_function)
         
-        call this % my_NNTrain % train(this % X_train, &
-            this % y_train, this % y_pre)
+        call this % my_NNTrain % train(X_train, y_train, y_train_pre)
         
         call this % output_data()
-            
+        
+        end associate
+        
         return
     end subroutine m_main
     !====
@@ -132,18 +142,18 @@ contains   !|
             count_train_sample => this % count_train_sample, &
             X_train            => this % X_train,            &
             y_train            => this % y_train,            &
-            y_pre              => this % y_pre               &
+            y_train_pre        => this % y_train_pre         &
         )
         
         allocate( Y_err(count_train_sample) )
       
         
-        Y_err = abs(y_train(1,:) - y_pre(1,:))
+        Y_err = abs(y_train(1,:) - y_train_pre(1,:))
         
         call output_tecplot_line(                        &                       
             './Output/SinCase/result.plt',               &
             'X', X_train(1,:), 'Sin_True', y_train(1,:), &
-            'Sin_Pre', y_pre(1,:), 'Sin_Err', Y_err      &
+            'Sin_Pre', y_train_pre(1,:), 'Sin_Err', Y_err      &
         )
             
         deallocate(Y_err)
@@ -160,7 +170,7 @@ contains   !|
     implicit none
         class(SinCase), intent(inout) :: this
         
-        associate ( &
+        associate (                                              &
                 sample_point_X     => this % sample_point_X,     &
                 sample_point_y     => this % sample_point_y,     &
                 count_train_sample => this % count_train_sample, &
@@ -169,7 +179,7 @@ contains   !|
         
         allocate( this % X_train(sample_point_X, count_train_sample) )        
         allocate( this % y_train(sample_point_y, count_train_sample) )
-        allocate( this % y_pre(sample_point_y, count_train_sample) )
+        allocate( this % y_train_pre(sample_point_y, count_train_sample) )
         
         allocate( this % X_test(sample_point_X, count_test_sample) )
         allocate( this % y_test(sample_point_y, count_test_sample) )       
@@ -194,7 +204,7 @@ contains   !|
         
         deallocate( this % X_train )        
         deallocate( this % y_train )
-        deallocate( this % y_pre )
+        deallocate( this % y_train_pre )
         
         deallocate( this % X_test )
         deallocate( this % y_test )    
