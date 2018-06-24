@@ -27,10 +27,10 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     logical, private :: is_allocate_done = .false.
 	
 	!* 每组样本的数量
-    integer, public :: batch_size = 100
+    integer, public :: batch_size = 50
     
     !* 训练集样本数量，最大是60000
-    integer, public :: count_train_sample = 60000
+    integer, public :: count_train_sample = 10000
     
     !* 测试集样本数量，最大是10000
     integer, public :: count_test_sample = 5000
@@ -133,37 +133,38 @@ contains   !|
 		
 		call this % adam_method % set_NN( this % my_NNTrain % my_NNStructure )
 		call this % adam_method % set_batch_size( this % batch_size )
+        !call this % adam_method % set_batch_size( this % count_train_sample )
 		call this % my_NNTrain % set_optimization_method( this % adam_method )
 		
-		!do round_step=1, train_count     
-  !          
+		do round_step=1, train_count     
+            
             call this % batch_generator % get_next_batch( &
                 X_train, y_train, X_batch, y_batch )
             
             call this % my_NNTrain % train(X_batch, &
                 y_batch, y_batch_pre)    
-  !          
-  !          write(UNIT=round_step_to_str, FMT='(I15)') round_step
-  !          call LogInfo("round_step = " // TRIM(ADJUSTL(round_step_to_str)))
-  !          
-  !          !call this % my_NNTrain % sim(X_train, &
-  !          !    y_train, y_train_pre)
-  !          
-  !          !if (MOD(round_step, 1) == 0) then
-  !              call this % my_NNTrain % sim(X_test, &
-  !                  y_test, y_test_pre)
-  !          !end if
-  !          
-  !      end do
+            
+            write(UNIT=round_step_to_str, FMT='(I15)') round_step
+            call LogInfo("round_step = " // TRIM(ADJUSTL(round_step_to_str)))
+            
+            !call this % my_NNTrain % sim(X_train, &
+            !    y_train, y_train_pre)
+            
+            !if (MOD(round_step, 1) == 0) then
+                call this % my_NNTrain % sim(X_test, &
+                    y_test, y_test_pre)
+            !end if
+            
+        end do
         
         !call this % my_NNTrain % sim(X_train, &
         !    y_train, y_train_pre)
         !
-        !call this % my_NNTrain % train(X_train, &
-        !    y_train, y_train_pre)
-        !
-        !call this % my_NNTrain % sim(X_test, &
-        !    y_test, y_test_pre)
+        call this % my_NNTrain % train(X_train, &
+            y_train, y_train_pre)
+        
+        call this % my_NNTrain % sim(X_test, &
+            y_test, y_test_pre)
         
             
         end associate

@@ -369,9 +369,9 @@ contains   !|
             stop       
         end select
         
-        !if (MOD(step, 10) == 0) then
+        if (MOD(step, 200) == 0) then
             call LogInfo(msg)
-        !end if
+        end if
         
         call LogDebug("NNTrain: SUBROUTINE m_get_error_or_accuracy")
         
