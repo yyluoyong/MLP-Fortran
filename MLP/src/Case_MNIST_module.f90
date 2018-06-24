@@ -128,35 +128,35 @@ contains   !|
             
         call this % my_NNTrain % set_loss_function(this % cross_entropy_function)
 		
-		do round_step=1, train_count     
-            
-            call this % batch_generator % get_next_batch( &
-                X_train, y_train, X_batch, y_batch )
-            
-            call this % my_NNTrain % train(X_batch, &
-                y_batch, y_batch_pre)    
-            
-            write(UNIT=round_step_to_str, FMT='(I15)') round_step
-            call LogInfo("round_step = " // TRIM(ADJUSTL(round_step_to_str)))
-            
-            !call this % my_NNTrain % sim(X_train, &
-            !    y_train, y_train_pre)
-            
-            !if (MOD(round_step, 1) == 0) then
-                call this % my_NNTrain % sim(X_test, &
-                    y_test, y_test_pre)
-            !end if
-            
-        end do
+		!do round_step=1, train_count     
+  !          
+  !          call this % batch_generator % get_next_batch( &
+  !              X_train, y_train, X_batch, y_batch )
+  !          
+  !          call this % my_NNTrain % train(X_batch, &
+  !              y_batch, y_batch_pre)    
+  !          
+  !          write(UNIT=round_step_to_str, FMT='(I15)') round_step
+  !          call LogInfo("round_step = " // TRIM(ADJUSTL(round_step_to_str)))
+  !          
+  !          !call this % my_NNTrain % sim(X_train, &
+  !          !    y_train, y_train_pre)
+  !          
+  !          !if (MOD(round_step, 1) == 0) then
+  !              call this % my_NNTrain % sim(X_test, &
+  !                  y_test, y_test_pre)
+  !          !end if
+  !          
+  !      end do
         
         !call this % my_NNTrain % sim(X_train, &
         !    y_train, y_train_pre)
+        !
+        call this % my_NNTrain % train(X_train, &
+            y_train, y_train_pre)
         
-        !call this % my_NNTrain % train(X_train, &
-        !    y_train, y_train_pre)
-        
-        !call this % my_NNTrain % sim(X_test, &
-        !    y_test, y_test_pre)
+        call this % my_NNTrain % sim(X_test, &
+            y_test, y_test_pre)
         
             
         end associate

@@ -66,12 +66,14 @@
 		<File RelativePath=".\src\NNActivationFunctionTanH_Module.f90"/>
 		<File RelativePath=".\src\NNBaseActivationFunction_Module.f90"/>
 		<File RelativePath=".\src\NNBaseCalculationCase_module.f90"/>
+		<File RelativePath=".\src\NNBaseGradientOptimizationMethod_module.f90"/>
 		<File RelativePath=".\src\NNBaseLossFunction_Module.f90"/>
 		<File RelativePath=".\src\NNBaseRandomBatchGenerator_Module.f90"/>
 		<File RelativePath=".\ParameterSetting\NNHiddenLayerNodeCount.parameter"/>
 		<File RelativePath=".\ParameterSetting\NNLearningRate.parameter"/>
 		<File RelativePath=".\src\NNLossFunctionCrossEntropy_Module.f90"/>
 		<File RelativePath=".\src\NNLossFunctionMeanSquareError_Module.f90"/>
+		<File RelativePath=".\src\NNOptimizationAdam_module.f90"/>
 		<File RelativePath=".\ParameterSetting\NNParameter.nml"/>
 		<File RelativePath=".\src\NNParameter_Module.f90"/>
 		<File RelativePath=".\src\NNRandomBatchGeneratorSimple_Module.f90"/>

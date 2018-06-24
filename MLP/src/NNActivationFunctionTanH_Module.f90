@@ -3,9 +3,9 @@ use mod_Precision
 use mod_BaseActivationFunction
 implicit none    
 
-!----------------
+!-------------------
 ! 工作类：激活函数 |
-!----------------
+!-------------------
 type, extends(BaseActivationFunction), public :: Tan_H
     !* 继承自BaseActivationFunction并实现其接口
 
