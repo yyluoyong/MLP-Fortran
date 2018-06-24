@@ -68,9 +68,9 @@ implicit none
             open(unit=33, file=fileName, form='formatted', status='old')
         end if
 
-        write(33, *)
+        !write(33, *)
         write(33, *) trim(str)
-        write(33, *)
+        !write(33, *)
 
         return
     end subroutine m_outputStr

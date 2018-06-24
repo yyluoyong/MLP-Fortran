@@ -38,6 +38,7 @@ type, public :: NNTrain
     !* 训练数据对应的目标值，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y
     
+	
     !* 默认为空，即使用NNStructure中定义的(-1,1)
     character(len=30), private :: &
         weight_threshold_init_methods_name = ''
@@ -159,7 +160,6 @@ contains   !|
     use mod_NNWeightThresholdInitMethods
     implicit none
         class(NNTrain), intent(inout) :: this
-        !* 调用者信息，值可以为 ''，此时使用默认配置信息
         character(len=*), intent(in) :: caller_name
         real(PRECISION), dimension(:,:), intent(in) :: X
         real(PRECISION), dimension(:,:), intent(in) :: y
@@ -189,8 +189,7 @@ contains   !|
             this % layers_node_count(this % layers_count) =  &
                 Y_shape(1)
             !* 样本数目
-            this % sample_count = X_shape(2)         
-            
+            this % sample_count = X_shape(2)                    
         
             !* 复制训练的数据与目标，
             !*     注：不用指针是因为在当前类中可能改变X, y
@@ -342,7 +341,7 @@ contains   !|
         
         select case (TRIM(ADJUSTL(this % train_type)))
         case ('regression')
-            !PASS
+            continue
         case ('classification')
             call m_get_accuracy( t, y, acc_local )
             if (PRESENT(acc)) then
@@ -358,7 +357,9 @@ contains   !|
             stop       
         end select
         
-        call LogInfo(msg)
+        if (MOD(step, 500) == 0) then
+            call LogInfo(msg)
+        end if
         
         call LogDebug("NNTrain: SUBROUTINE m_get_error_or_accuracy")
         
@@ -367,6 +368,8 @@ contains   !|
     !====
     
     !* 静态子程序，误差计算
+	!*   回归问题：计算 L_2、L_∞ 误差；
+	!*   分类问题：计算 交叉熵.
     subroutine m_get_total_error( train_type, t, y, err, max_err )
     implicit none
         character(len=*), intent(in) :: train_type
@@ -382,11 +385,13 @@ contains   !|
         t_shape = SHAPE(t)
         
         if (TRIM(ADJUSTL(train_type)) == 'regression') then
-                  
+		
+			!* root mean square error.                  
             err = SUM((t - y)*(t - y))
             err = err / ( t_shape(1) * t_shape(2) )
             err = SQRT(err)
         
+			!* L_∞ 误差
             max_err = MAXVAL(ABS(t - y))
             
         else if (TRIM(ADJUSTL(train_type)) == 'classification') then
@@ -394,11 +399,13 @@ contains   !|
             err = 0
             max_err = 0
             
+			!* 交叉熵 
             do j=1, t_shape(2)
                 tmp = 0
-                do i=1, t_shape(1)
-                    !tmp = -DOT_PRODUCT(t(:,j), LOG(y(:,j)))
+				!* error = -DOT_PRODUCT(t(:,j), LOG(y(:,j)))
+                do i=1, t_shape(1)              
                     if (abs(t(i,j)) < 1.E-16 .and. abs(y(i,j)) < 1.E-16) then
+						!* 定义 0*log(0) = 0 
                         continue
                     else
                         tmp = tmp - t(i,j) * LOG(y(i,j))
@@ -407,11 +414,10 @@ contains   !|
                 if (tmp > max_err)  max_err = tmp
                 err = err + tmp
             end do
-            
-            !write(*, *) MINVAL(y)
-            
+    
             err = err / t_shape(2)
-        end if
+
+		end if
         
         call LogDebug("NNTrain: SUBROUTINE m_get_total_error")
              
@@ -420,6 +426,7 @@ contains   !|
     !====
     
     !* 静态子程序，正确率计算
+	!*   分类问题：需要根据网络输出计算正确率.
     subroutine m_get_accuracy( t, y, acc )
     implicit none
         real(PRECISION), dimension(:,:), intent(in) :: t
@@ -475,7 +482,7 @@ contains   !|
             W = W - eta_w * dW
             
             !* θ = θ - η * dTheta
-            Theta = Theta -eta_theta * dTheta
+            Theta = Theta - eta_theta * dTheta
            
             end associate
         end do
@@ -510,10 +517,12 @@ contains   !|
             )
                       
             !* W = W - η * ∑ dW
-            W = W - eta_w * sum_dW
+			!* undo: sum_dW 除以样本数量
+            W = W - eta_w * sum_dW !/ this % sample_count
 
             !* θ = θ - η * ∑ dTheta
-            Theta = Theta - eta_theta * sum_dTheta
+			!* undo: sum_dW 除以样本数量
+            Theta = Theta - eta_theta * sum_dTheta !/ this % sample_count
             
             !* 每结束一轮必须清 0
             sum_dW = 0
@@ -730,10 +739,10 @@ contains   !|
         
         l_count = this % layers_count
         
-        allocate( this % layers_node_count(0:l_count) )        
-        allocate( this % learning_rate_weight(l_count) )
+        allocate( this % layers_node_count(0:l_count)     )        
+        allocate( this % learning_rate_weight(l_count)    )
         allocate( this % learning_rate_threshold(l_count) )
-        allocate( this % act_fun_name_list(l_count) )       
+        allocate( this % act_fun_name_list(l_count)       )       
         
         this % is_allocate_done = .true.
         
@@ -749,9 +758,10 @@ contains   !|
     implicit none
         class(NNTrain), intent(inout)  :: this	
         
-        deallocate(this % layers_node_count)
-        deallocate(this % learning_rate_weight)
-        deallocate(this % learning_rate_threshold)
+        deallocate( this % layers_node_count       )
+        deallocate( this % learning_rate_weight    )
+        deallocate( this % learning_rate_threshold )
+		deallocate( this % act_fun_name_list       )  
         
         this % is_allocate_done = .false.
         

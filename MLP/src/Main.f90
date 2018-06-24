@@ -19,11 +19,11 @@ implicit none
     !call test_output_tecplot_line()
     !call test_output_tecplot_2D()
     
-    allocate( my_SinCase )     
-    call my_SinCase % main()
+    !allocate( my_SinCase )     
+    !call my_SinCase % main()
     
-    !allocate( my_MNISTCase )     
-    !call my_MNISTCase % main()
+    allocate( my_MNISTCase )     
+    call my_MNISTCase % main()
     
     !allocate( my_MoonCase )     
     !call my_MoonCase % main()
