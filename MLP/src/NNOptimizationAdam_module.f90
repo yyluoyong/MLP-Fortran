@@ -157,6 +157,9 @@ contains   !|
 			dTheta = -eps * (Theta_S / (1 - rho_1_t)) / &
 				(SQRT(Theta_R / (1 - rho_2_t)) + delta)
 			Theta = Theta + dTheta
+			
+			sum_dW = 0
+			sum_dTheta = 0
 	
 			end associate
 		end do 

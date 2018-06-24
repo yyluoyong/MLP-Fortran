@@ -6,6 +6,8 @@ use mod_ActivationFunctionList
 use mod_BaseActivationFunction
 use mod_NNStructure
 use mod_Log
+use mod_BaseGradientOptimizationMethod
+use mod_OptimizationAdam
 implicit none    
 
 !-----------------------------------
@@ -86,8 +88,11 @@ type, public :: NNTrain
     character(len=20), private :: bp_algorithm
     
     !* 网络结构
-    type(NNStructure), pointer, private :: my_NNStructure
+    type(NNStructure), pointer, public :: my_NNStructure
     
+	!* 优化方法
+	class(OptimizationAdam), pointer, private :: gradient_optimization_method
+	
 !||||||||||||    
 contains   !|
 !||||||||||||
@@ -99,6 +104,7 @@ contains   !|
     procedure, public :: set_loss_function => m_set_loss_function
     procedure, public :: set_weight_threshold_init_methods_name => &
         m_set_weight_threshold_init_methods_name
+	procedure, public :: set_optimization_method => m_set_optimization_method
     
     
     procedure, public :: train => m_train
@@ -141,6 +147,7 @@ end type NNTrain
     private :: m_set_train_type
     private :: m_set_weight_threshold_init_methods_name
     private :: m_set_loss_function
+	private :: m_set_optimization_method
     
     private :: m_init_NNParameter
     private :: m_load_NNParameter
@@ -244,6 +251,9 @@ contains   !|
         do t_step=1, this % train_step
         
             call LogDebug("NNTrain: SUBROUTINE m_train step")
+			
+			call this % gradient_optimization_method % set_ME_zero()
+			call this % gradient_optimization_method % set_step( t_step )
             
             do sample_index=1, X_shape(2)
 
@@ -251,16 +261,18 @@ contains   !|
                     t(:, sample_index), y(:, sample_index) )
         
                 !* 标准BP算法在此处更新网络权值和阈值
-                if (TRIM(ADJUSTL(this % bp_algorithm)) == 'standard') then
-                    call this % standard_BP_update()
-                end if
+                !if (TRIM(ADJUSTL(this % bp_algorithm)) == 'standard') then
+                !    call this % standard_BP_update()
+                !end if
             end do
             
             !* 累积BP算法在此处更新网络权值和阈值 
-            if (TRIM(ADJUSTL(this % bp_algorithm)) == 'accumulation') then
-                    call this % accumulation_BP_update()
-            end if
+            !if (TRIM(ADJUSTL(this % bp_algorithm)) == 'accumulation') then
+            !        call this % accumulation_BP_update()
+            !end if
             
+			call this % gradient_optimization_method % update_NN()
+			
             call this % get_error_or_accuracy(t_step, t, y, err, acc)
             
             if (err < this % error_avg) then
@@ -629,6 +641,21 @@ contains   !|
     end subroutine m_set_loss_function
     !====
     
+	
+	!* 设置优化方法
+    subroutine m_set_optimization_method( this, opt_method )
+    implicit none
+        class(NNTrain), intent(inout) :: this
+        class(OptimizationAdam), target, intent(in) :: opt_method
+        
+        this % gradient_optimization_method => opt_method
+        
+        call LogDebug("NNTrain: SUBROUTINE m_set_optimization_method")
+        
+        return
+    end subroutine m_set_optimization_method
+    !====
+	
     !* 读取网络的参数
     subroutine m_load_NNParameter( this )
     implicit none

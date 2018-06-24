@@ -5,6 +5,7 @@ use mod_BaseCalculationCase
 use mod_NNTrain
 use mod_CrossEntropy
 use mod_SimpleBatchGenerator
+use mod_OptimizationAdam
 implicit none    
 
 !------------------------------
@@ -64,6 +65,8 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     type(CrossEntropyWithSoftmax), pointer :: cross_entropy_function
 	
 	type(SimpleBatchGenerator), pointer :: batch_generator
+	
+	type(OptimizationAdam), pointer :: adam_method
     
 !||||||||||||    
 contains   !|
@@ -128,13 +131,17 @@ contains   !|
             
         call this % my_NNTrain % set_loss_function(this % cross_entropy_function)
 		
+		call this % adam_method % set_NN( this % my_NNTrain % my_NNStructure )
+		call this % adam_method % set_batch_size( this % batch_size )
+		call this % my_NNTrain % set_optimization_method( this % adam_method )
+		
 		!do round_step=1, train_count     
   !          
-  !          call this % batch_generator % get_next_batch( &
-  !              X_train, y_train, X_batch, y_batch )
-  !          
-  !          call this % my_NNTrain % train(X_batch, &
-  !              y_batch, y_batch_pre)    
+            call this % batch_generator % get_next_batch( &
+                X_train, y_train, X_batch, y_batch )
+            
+            call this % my_NNTrain % train(X_batch, &
+                y_batch, y_batch_pre)    
   !          
   !          write(UNIT=round_step_to_str, FMT='(I15)') round_step
   !          call LogInfo("round_step = " // TRIM(ADJUSTL(round_step_to_str)))
@@ -152,11 +159,11 @@ contains   !|
         !call this % my_NNTrain % sim(X_train, &
         !    y_train, y_train_pre)
         !
-        call this % my_NNTrain % train(X_train, &
-            y_train, y_train_pre)
-        
-        call this % my_NNTrain % sim(X_test, &
-            y_test, y_test_pre)
+        !call this % my_NNTrain % train(X_train, &
+        !    y_train, y_train_pre)
+        !
+        !call this % my_NNTrain % sim(X_test, &
+        !    y_test, y_test_pre)
         
             
         end associate
@@ -293,6 +300,8 @@ contains   !|
         allocate( this % cross_entropy_function )
 		
 		allocate( this % batch_generator )
+		
+		allocate( this % adam_method )
         
         this % is_allocate_done = .true.
         
@@ -322,7 +331,8 @@ contains   !|
         
         deallocate( this % my_NNTrain )
         deallocate( this % cross_entropy_function )
-		deallocate( this % batch_generator )
+		deallocate( this % batch_generator )		
+		deallocate( this % adam_method )
         
         this % is_allocate_done = .false.
         
