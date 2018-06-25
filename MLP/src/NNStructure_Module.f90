@@ -63,6 +63,8 @@ implicit none
                        
         procedure, public :: forward_propagation  => m_forward_propagation
         procedure, public :: backward_propagation => m_backward_propagation
+		
+		procedure, public :: calc_avg_gradient => m_calc_avg_gradient
         
         procedure, public :: set_loss_function             => m_set_loss_function
 		procedure, public :: set_activation_function_layer => m_set_act_fun_layer
@@ -114,6 +116,7 @@ implicit none
     
     private :: m_forward_propagation
     private :: m_backward_propagation
+	private :: m_calc_avg_gradient
     private :: m_get_all_layer_local_var
     
     private :: m_get_all_d_Matrix_part
@@ -228,21 +231,6 @@ contains   !|
         !* 反向计算：所有导数信息
         call this % get_all_derivative_variable()
         
-        !* 对导数信息进行求和，累计BP算法需要用到.
-        do layer_index=1, l_count        
-            associate (                                                   &
-                dW         => this % pt_Layer( layer_index ) % dW,        &
-                dTheta     => this % pt_Layer( layer_index ) % dTheta,    &
-                sum_dW     => this % pt_Layer( layer_index ) % sum_dW,    &               
-                sum_dTheta => this % pt_Layer( layer_index ) % sum_dTheta &
-            )
-        
-            sum_dW = sum_dW + dW   
-            sum_dTheta = sum_dTheta + dTheta
-            
-            end associate       
-        end do
-        
         y = this % pt_Layer(l_count) % Z 
         
         call LogDebug("NNStructure: SUBROUTINE m_backward_propagation")
@@ -251,6 +239,38 @@ contains   !|
     end subroutine m_backward_propagation
     !====
 
+    !* 计算参数的平均梯度
+    !* 完成一次m_backward_propagation计算后调用
+    subroutine m_calc_avg_gradient( this, batch_size )
+    implicit none
+        class(NNStructure), intent(inout) :: this
+        integer, intent(in) :: batch_size
+        
+        integer :: layer_index, l_count
+        
+        l_count = this % layers_count
+        
+        !* 对导数信息进行求平均，累计BP算法需要用到.
+        do layer_index=1, l_count        
+            associate (                                                   &
+                dW         => this % pt_Layer( layer_index ) % dW,        &
+                dTheta     => this % pt_Layer( layer_index ) % dTheta,    &
+                avg_dW     => this % pt_Layer( layer_index ) % avg_dW,    &               
+                avg_dTheta => this % pt_Layer( layer_index ) % avg_dTheta &
+            )
+        
+            avg_dW = avg_dW + dW / batch_size   
+            avg_dTheta = avg_dTheta + dTheta / batch_size
+            
+            end associate       
+        end do
+        
+        call LogDebug("NNStructure: SUBROUTINE m_calc_avg_gradient")
+        
+        return
+    end subroutine m_calc_avg_gradient
+    !====  
+    
     !* 计算所有求导变量的值
     subroutine m_get_all_derivative_variable( this )
     implicit none
@@ -743,10 +763,10 @@ contains   !|
             
             !* 注意：矩阵大小为 N×M，而不是 M×N.
             allocate( this % pt_Layer( layer_index ) % dW(N,M) )
-            allocate( this % pt_Layer( layer_index ) % sum_dW(N,M) )
+            allocate( this % pt_Layer( layer_index ) % avg_dW(N,M) )
             
             allocate( this % pt_Layer( layer_index ) % dTheta(N) )
-            allocate( this % pt_Layer( layer_index ) % sum_dTheta(N) )
+            allocate( this % pt_Layer( layer_index ) % avg_dTheta(N) )
         end do
         
         call LogDebug("NNStructure: SUBROUTINE m_allocate_memory")
@@ -790,8 +810,8 @@ contains   !|
 			deallocate( this % pt_Layer( layer_index ) % Z )
             deallocate( this % pt_Layer( layer_index ) % dW )
 			deallocate( this % pt_Layer( layer_index ) % dTheta )
-            deallocate( this % pt_Layer( layer_index ) % sum_dW )
-			deallocate( this % pt_Layer( layer_index ) % sum_dTheta )
+            deallocate( this % pt_Layer( layer_index ) % avg_dW )
+			deallocate( this % pt_Layer( layer_index ) % avg_dTheta )
 			deallocate( this % pt_Layer( layer_index ) % d_Matrix_part )
 			
 		end do

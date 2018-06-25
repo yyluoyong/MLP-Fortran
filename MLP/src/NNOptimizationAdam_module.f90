@@ -54,9 +54,6 @@ type, extends(BaseGradientOptimizationMethod), public :: OptimizationAdam
 	!* 是否初始化内存空间
 	logical, private :: is_allocate_done = .false.
 	
-	!* 每组样本的数量
-	integer, private :: batch_size
-	
 	!* 层的数目，不含输入层
 	integer, private :: layers_count
     
@@ -74,7 +71,6 @@ contains   !|
 	!* 训练之前设置
 	!* 修改Adam算法的默认参数
 	procedure, public :: set_Adam_parameter => m_set_Adam_parameter	
-	procedure, public :: set_batch_size => m_set_batch_size
 	
 	!* batch每迭代一次需要调用之
 	procedure, public :: set_iterative_step => m_set_step
@@ -84,6 +80,12 @@ contains   !|
     procedure, public :: update_NN => m_update_NN
 	!* 权值、阈值一阶、二阶矩估计置 0
 	procedure, public :: set_ME_zero => m_set_ME_zero
+	
+	!* 前处理工作
+	procedure, public :: pre_process => m_pre_process
+	
+	!* 后处理工作
+	procedure, public :: post_process => m_post_process
 	
 	
 	procedure, private :: allocate_pointer   => m_allocate_pointer
@@ -101,6 +103,11 @@ end type OptimizationAdam
     private :: m_update_NN
 	private :: m_set_Adam_parameter
 	private :: m_set_step
+	
+	private :: m_set_ME_zero
+	
+	private :: m_pre_process
+	private :: m_post_process
 	
 	private :: m_allocate_pointer
 	private :: m_allocate_memory
@@ -122,7 +129,7 @@ contains   !|
 		l_count = this % layers_count
         
 		!* 假设：一个batch完成一次完整反向计算，
-		!* 计算得到了累积梯度：sum_dW、sum_dTheta
+		!* 计算得到了平均梯度：avg_dW、avg_dTheta
 		do layer_index=1, l_count
 			associate (                                                           &              
                 eps        => this % eps,                                         &
@@ -131,7 +138,6 @@ contains   !|
 				rho_1_t    => this % rho_1_t,                                     &
 				rho_2_t    => this % rho_2_t,                                     &
 				delta      => this % delta,                                       &
-				batch_size => this % batch_size,                                  &
 				W_S        => this % pt_W_ME_s( layer_index ) % W,                &
                 W_R        => this % pt_W_ME_r( layer_index ) % W,                &
                 Theta_S    => this % pt_Theta_ME_s( layer_index ) % Theta,        &
@@ -140,18 +146,17 @@ contains   !|
                 Theta      => this % my_NN % pt_Theta(layer_index) % Theta,       &
                 dW         => this % my_NN % pt_Layer( layer_index ) % dW,        &
                 dTheta     => this % my_NN % pt_Layer( layer_index ) % dTheta,    &
-                sum_dW     => this % my_NN % pt_Layer( layer_index ) % sum_dW,    &               
-                sum_dTheta => this % my_NN % pt_Layer( layer_index ) % sum_dTheta &
+                avg_dW     => this % my_NN % pt_Layer( layer_index ) % avg_dW,    &               
+                avg_dTheta => this % my_NN % pt_Layer( layer_index ) % avg_dTheta &
             )
 		
 			!* s <-- ρ_1 * s + (1 - ρ_1) * g
 			!* r <-- ρ_2 * r + (1 - ρ_2) * g ⊙ g
-			W_S = rho_1 * W_S + (1 - rho_1) * sum_dW / batch_size
-			W_R = rho_2 * W_R + (1 - rho_2) * sum_dW * sum_dW / batch_size
+			W_S = rho_1 * W_S + (1 - rho_1) * avg_dW
+			W_R = rho_2 * W_R + (1 - rho_2) * avg_dW * avg_dW 
 			
-			Theta_S = rho_1 * Theta_S + (1 - rho_1) * sum_dTheta / batch_size
-			Theta_R = rho_2 * Theta_R + &
-				(1 - rho_2) * sum_dTheta * sum_dTheta / ( batch_size * batch_size ) 
+			Theta_S = rho_1 * Theta_S + (1 - rho_1) * avg_dTheta 
+			Theta_R = rho_2 * Theta_R + (1 - rho_2) * avg_dTheta * avg_dTheta
 			
 			!* △θ = -ε * s_hat / (√(r_hat) + δ)
 			!* s_hat = s / (1 - ρ^t_1), r_hat = r / (1 - ρ^t_2)
@@ -162,8 +167,8 @@ contains   !|
 				(SQRT(Theta_R / (1 - rho_2_t)) + delta)
 			Theta = Theta + dTheta
 			
-			sum_dW = 0
-			sum_dTheta = 0
+			avg_dW = 0
+			avg_dTheta = 0
 	
 			end associate
 		end do 
@@ -207,18 +212,6 @@ contains   !|
 		return
 	end subroutine m_set_NN
 	!====
-
-	!* 
-	subroutine m_set_batch_size( this, batch_size )
-	implicit none
-		class(OptimizationAdam), intent(inout) :: this
-		integer, intent(in) :: batch_size 
-
-		this % batch_size = batch_size
-		
-		return
-	end subroutine m_set_batch_size
-	!====	
 	
 	!* 设置迭代的时间步，计算衰减率幂次
 	subroutine m_set_step( this, step )
@@ -233,6 +226,27 @@ contains   !|
 	end subroutine m_set_step
 	!====
 	
+	!* 前处理工作
+	subroutine m_pre_process( this )
+	implicit none
+		class(OptimizationAdam), intent(inout) :: this
+
+		call this % set_ME_zero()
+		
+		return
+	end subroutine m_pre_process
+	!====
+	
+	!* 后处理工作
+	subroutine m_post_process( this )
+	implicit none
+		class(OptimizationAdam), intent(inout) :: this
+
+		continue
+		
+		return
+	end subroutine m_post_process
+	!====
 	
 	!* 权值、阈值一阶、二阶矩估计置 0
 	subroutine m_set_ME_zero( this )

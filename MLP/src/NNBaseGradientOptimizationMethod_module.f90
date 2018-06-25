@@ -19,7 +19,13 @@ contains   !|
 	
 	!* 更新神经网络的参数
 	procedure(abs_update_NN), deferred, public :: update_NN
-    
+	
+	!* 前处理工作
+	procedure(abs_pre_process), deferred, public :: pre_process
+	
+	!* 后处理工作
+	procedure(abs_post_process), deferred, public :: post_process
+   
 
 end type BaseGradientOptimizationMethod
 !===================
@@ -56,6 +62,24 @@ abstract interface
 	implicit none
 		class(BaseGradientOptimizationMethod), intent(inout) :: this
 		integer, intent(in) :: step
+
+	end subroutine
+	!====
+	
+	!* 前处理工作
+	subroutine abs_pre_process( this )
+    import :: BaseGradientOptimizationMethod
+	implicit none
+		class(BaseGradientOptimizationMethod), intent(inout) :: this
+
+	end subroutine
+	!====
+	
+	!* 后处理工作
+	subroutine abs_post_process( this )
+    import :: BaseGradientOptimizationMethod
+	implicit none
+		class(BaseGradientOptimizationMethod), intent(inout) :: this
 
 	end subroutine
 	!====

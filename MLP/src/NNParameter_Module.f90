@@ -45,15 +45,15 @@ implicit none
         !* 数组行、列大小分别是该权重W连接的两层的节点数目
         real(kind=PRECISION), dimension(:,:), allocatable :: dW
         
-        !* 所有样本zeta对W的导数的求和
-        real(kind=PRECISION), dimension(:,:), allocatable :: sum_dW
+        !* 所有样本zeta对W的导数的求平均
+        real(kind=PRECISION), dimension(:,:), allocatable :: avg_dW
         
         !* zeta对Theta的导数
         !* 数组的大小是该阈值对应层的节点数目
         real(kind=PRECISION), dimension(:), allocatable :: dTheta   
         
-        !* 所有样本zeta对Theta的导数的求和
-        real(kind=PRECISION), dimension(:), allocatable :: sum_dTheta  
+        !* 所有样本zeta对Theta的导数的求平均
+        real(kind=PRECISION), dimension(:), allocatable :: avg_dTheta  
         
         !* 激活函数
         !* 注：BaseActivationFunction 是抽象类，不能使用动态数组.

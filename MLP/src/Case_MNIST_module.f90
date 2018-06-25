@@ -27,7 +27,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     logical, private :: is_allocate_done = .false.
 	
 	!* 每组样本的数量
-    integer, public :: batch_size = 50
+    integer, public :: batch_size = 100
     
     !* 训练集样本数量，最大是60000
     integer, public :: count_train_sample = 10000
@@ -132,7 +132,6 @@ contains   !|
         call this % my_NNTrain % set_loss_function(this % cross_entropy_function)
 		
 		call this % adam_method % set_NN( this % my_NNTrain % my_NNStructure )
-		call this % adam_method % set_batch_size( this % batch_size )
         !call this % adam_method % set_batch_size( this % count_train_sample )
 		call this % my_NNTrain % set_optimization_method( this % adam_method )
 		

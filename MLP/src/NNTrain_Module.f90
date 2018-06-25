@@ -7,7 +7,6 @@ use mod_BaseActivationFunction
 use mod_NNStructure
 use mod_Log
 use mod_BaseGradientOptimizationMethod
-use mod_OptimizationAdam
 implicit none    
 
 !-----------------------------------
@@ -91,7 +90,7 @@ type, public :: NNTrain
     type(NNStructure), pointer, public :: my_NNStructure
     
 	!* 优化方法
-	class(OptimizationAdam), pointer, private :: gradient_optimization_method
+	class(BaseGradientOptimizationMethod), pointer, private :: gradient_optimization_method
 	
 !||||||||||||    
 contains   !|
@@ -252,8 +251,8 @@ contains   !|
         
             call LogDebug("NNTrain: SUBROUTINE m_train step")
 			
-			call this % gradient_optimization_method % set_ME_zero()
-			call this % gradient_optimization_method % set_step( t_step )
+			call this % gradient_optimization_method % pre_process()
+			call this % gradient_optimization_method % set_iterative_step( t_step )
             
             do sample_index=1, X_shape(2)
 
@@ -264,6 +263,8 @@ contains   !|
                 !if (TRIM(ADJUSTL(this % bp_algorithm)) == 'standard') then
                 !    call this % standard_BP_update()
                 !end if
+				
+				call this % my_NNStructure % calc_avg_gradient( X_shape(2) )
             end do
             
             !* 累积BP算法在此处更新网络权值和阈值 
@@ -272,6 +273,7 @@ contains   !|
             !end if
             
 			call this % gradient_optimization_method % update_NN()
+			call this % gradient_optimization_method % post_process()
 			
             call this % get_error_or_accuracy(t_step, t, y, err, acc)
             
@@ -524,21 +526,21 @@ contains   !|
             associate ( &
                 W          => this % my_NNStructure % pt_W( layer_index ) % W,             &
                 Theta      => this % my_NNStructure % pt_Theta( layer_index ) % Theta,     &
-                sum_dW     => this % my_NNStructure % pt_Layer( layer_index ) % sum_dW,    &              
-                sum_dTheta => this % my_NNStructure % pt_Layer( layer_index ) % sum_dTheta &
+                avg_dW     => this % my_NNStructure % pt_Layer( layer_index ) % avg_dW,    &              
+                avg_dTheta => this % my_NNStructure % pt_Layer( layer_index ) % avg_dTheta &
             )
                       
             !* W = W - η * ∑ dW
-			!* undo: sum_dW 除以样本数量
-            W = W - eta_w * sum_dW !/ this % sample_count
+			!* undo: avg_dW 除以样本数量
+            W = W - eta_w * avg_dW !/ this % sample_count
 
             !* θ = θ - η * ∑ dTheta
-			!* undo: sum_dW 除以样本数量
-            Theta = Theta - eta_theta * sum_dTheta !/ this % sample_count
+			!* undo: avg_dW 除以样本数量
+            Theta = Theta - eta_theta * avg_dTheta !/ this % sample_count
             
             !* 每结束一轮必须清 0
-            sum_dW = 0
-            sum_dTheta = 0
+            avg_dW = 0
+            avg_dTheta = 0
                 
             end associate
         end do
@@ -646,7 +648,7 @@ contains   !|
     subroutine m_set_optimization_method( this, opt_method )
     implicit none
         class(NNTrain), intent(inout) :: this
-        class(OptimizationAdam), target, intent(in) :: opt_method
+        class(BaseGradientOptimizationMethod), target, intent(in) :: opt_method
         
         this % gradient_optimization_method => opt_method
         
