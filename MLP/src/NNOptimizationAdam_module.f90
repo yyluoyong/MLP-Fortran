@@ -17,8 +17,6 @@ implicit none
 !-----------------------
 type, extends(BaseGradientOptimizationMethod), public :: OptimizationAdam
     !* 继承自BaseGradientOptimizationMethod并实现其接口
-
-	class(NNStructure), pointer, private :: my_NN
 	
 	!---------------------------------------------!
 	!* Adam 算法使用的参数，采用                 *!
@@ -47,6 +45,9 @@ type, extends(BaseGradientOptimizationMethod), public :: OptimizationAdam
 	!---------------------------------------------!
 	
 	
+	
+	class(NNStructure), pointer, private :: my_NN
+	
 	!* 是否设置NN
 	logical, private :: is_set_NN_done = .false.
         
@@ -70,17 +71,20 @@ contains   !|
 	!* 设置网络结构
     procedure, public :: set_NN => m_set_NN
 	
+	!* 训练之前设置
 	!* 修改Adam算法的默认参数
-	procedure, public :: set_Adam_parameter => m_set_Adam_parameter
-	
+	procedure, public :: set_Adam_parameter => m_set_Adam_parameter	
 	procedure, public :: set_batch_size => m_set_batch_size
 	
+	!* batch每迭代一次需要调用之
+	procedure, public :: set_iterative_step => m_set_step
+	
+	!* 每完成一组batch的迭代，需要调用之
 	!* 更新神经网络的参数
     procedure, public :: update_NN => m_update_NN
-	procedure, public :: set_step => m_set_step
-	
 	!* 权值、阈值一阶、二阶矩估计置 0
 	procedure, public :: set_ME_zero => m_set_ME_zero
+	
 	
 	procedure, private :: allocate_pointer   => m_allocate_pointer
     procedure, private :: allocate_memory    => m_allocate_memory
