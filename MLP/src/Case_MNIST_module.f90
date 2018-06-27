@@ -5,6 +5,7 @@ use mod_BaseCalculationCase
 use mod_NNTrain
 use mod_CrossEntropy
 use mod_SimpleBatchGenerator
+use mod_ShuffleBatchGenerator
 use mod_OptimizationAdam
 implicit none    
 
@@ -29,14 +30,16 @@ type, extends(BaseCalculationCase), public :: MNISTCase
 	!* 每组样本的数量
     integer, public :: batch_size = 100
     
-    !* 训练集样本数量，最大是60000
-    integer, public :: count_train_sample = 60000
+    !* 原始数据训练集样本数量，最大是60000
+	integer, public :: count_train_origin = 60000
+	!* 训练集样本数量
+    integer, public :: count_train = 55000
 	
 	!* 验证集样本数量
-	integer, public :: count_validation_sample = 5000
+	integer, public :: count_validation = 5000
     
     !* 测试集样本数量，最大是10000
-    integer, public :: count_test_sample = 5000
+    integer, public :: count_test = 5000
     
     !* 单个样本的数据量: 28 ×28 = 784
     integer, public :: sample_point_X = 784
@@ -49,6 +52,11 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     !* 训练数据的预测结果
     real(kind=PRECISION), dimension(:,:), allocatable, public :: y_batch_pre
     
+	!* 训练数据，每一列是一组
+    real(kind=PRECISION), dimension(:,:), allocatable, public :: X_train_origin
+    !* 训练数据对应的目标值，每一列是一组
+    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train_origin
+	
     !* 训练数据，每一列是一组
     real(kind=PRECISION), dimension(:,:), allocatable, public :: X_train
     !* 训练数据对应的目标值，每一列是一组
@@ -75,6 +83,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     type(CrossEntropyWithSoftmax), pointer :: cross_entropy_function
 	
 	type(SimpleBatchGenerator), pointer :: batch_generator
+    !type(ShuffleBatchGenerator), pointer :: batch_generator
 	
 	type(OptimizationAdam), pointer :: adam_method
     
@@ -119,28 +128,44 @@ contains   !|
         
         call this % load_MNIST_data()
         
-        associate (                                  &
-            X_batch        => this % X_batch,        &
-            y_batch        => this % y_batch,        &
-            y_batch_pre    => this % y_batch_pre,    &
-            X_train        => this % X_train,        &
-            y_train        => this % y_train,        &
-            y_train_pre    => this % y_train_pre,    &
-			X_validate     => this % X_validate,     &
-            y_validate     => this % y_validate,     &
-            y_validate_pre => this % y_validate_pre, &
-            X_test         => this % X_test,         &
-            y_test         => this % y_test,         &
-            y_test_pre     => this % y_test_pre,     & 
-			my_NNTrain     => this % my_NNTrain      &
+        associate (                                          &
+            X_train_origin     => this % X_train_origin,     &
+            y_train_origin     => this % y_train_origin,     &
+            X_batch            => this % X_batch,            &
+            y_batch            => this % y_batch,            &
+            y_batch_pre        => this % y_batch_pre,        &
+            X_train            => this % X_train,            &
+            y_train            => this % y_train,            &
+            y_train_pre        => this % y_train_pre,        &
+			X_validate         => this % X_validate,         &
+            y_validate         => this % y_validate,         &
+            y_validate_pre     => this % y_validate_pre,     &
+            X_test             => this % X_test,             &
+            y_test             => this % y_test,             &
+            y_test_pre         => this % y_test_pre,         & 
+			my_NNTrain         => this % my_NNTrain,         &
+			count_train        => this % count_train,        &
+			count_train_origin => this % count_train_origin, &
+            count_test         => this % count_test,         &
+			count_validate     => this % count_validation,   &
+			batch_size         => this % batch_size          &	
         )   
         
-        X_train = X_train / 128.0 - 1.0
+        !----------------------------------------
+		X_train = X_train / 128.0 - 1.0
 		X_test  = X_test  / 128.0 - 1.0		
         
-		X_validate = X_train(:, train_sub_count+1:this % count_train_sample)
-		y_validate = y_train(:, train_sub_count+1:this % count_train_sample)
+		X_train = X_train_origin(:, 1:count_train)
+		y_train = y_train_origin(:, 1:count_train)
 		
+		train_sub_count = count_train - count_validate
+		
+		X_validate = X_train_origin(:, train_sub_count+1:count_train_origin)
+		y_validate = y_train_origin(:, train_sub_count+1:count_train_origin)
+		!----------------------------------------
+		
+		
+		!----------------------------------------
         !call this % my_NNTrain % init('MNISTCase', X_train, y_train)
 		call my_NNTrain % init('MNISTCase', X_batch, y_batch)
         
@@ -149,16 +174,19 @@ contains   !|
         call my_NNTrain % set_loss_function(this % cross_entropy_function)
 		
 		call this % adam_method % set_NN( my_NNTrain % my_NNStructure )
+        call this % adam_method % set_Adam_parameter(eps=0.01)
 		call my_NNTrain % set_optimization_method( this % adam_method )
+		!----------------------------------------
 		
-		train_sub_count = this % count_train_sample - this % count_validation_sample
 		
 		do round_step=1, train_count     
             
-            call this % batch_generator % get_next_batch(               &
-                X_train(:, 1:train_sub_count), y_train(:, 1:train_sub_count), &
-				X_batch, y_batch )
+            call this % batch_generator % get_next_batch( &
+                X_train, y_train, X_batch, y_batch )
             
+            write(*, *) "Batch Set: "
+            call this % my_NNTrain % sim(X_batch, y_batch, y_batch_pre)
+                
             call my_NNTrain % train(X_batch, y_batch, y_batch_pre)    
             
             write(UNIT=round_step_to_str, FMT='(I15)') round_step
@@ -175,8 +203,12 @@ contains   !|
 			call this % my_NNTrain % sim(X_test, y_test, y_test_pre)
             !end if
             
+            
         end do
         
+        !call this % my_NNTrain % train(X_train, &
+        !    y_train, y_train_pre)
+        !
         !call this % my_NNTrain % sim(X_train, &
         !    y_train, y_train_pre)
         !
@@ -199,10 +231,10 @@ contains   !|
         class(MNISTCase), intent(inout) :: this
     
         call this % read_MNIST_data_from_file(&
-            this % train_image_data_file, this % X_train)
+            this % train_image_data_file, this % X_train_origin)
         
         call this % read_MNIST_data_from_file(&
-            this % train_label_data_file, this % y_train)
+            this % train_label_data_file, this % y_train_origin)
 		
         call this % read_MNIST_data_from_file(&
             this % test_image_data_file, this % X_test)
@@ -294,30 +326,34 @@ contains   !|
     implicit none
         class(MNISTCase), intent(inout) :: this
         
-        associate (                                          &
-            sample_point_X     => this % sample_point_X,     &
-            sample_point_y     => this % sample_point_y,     &
-            count_train_sample => this % count_train_sample, &
-            count_test_sample  => this % count_test_sample,  &
-			count_v_sample     => this % count_validation_sample,  &
+        associate (                                         &
+            point_X            => this % sample_point_X,     &
+            point_y            => this % sample_point_y,     &
+            count_train        => this % count_train,        &
+			count_train_origin => this % count_train_origin, &
+            count_test         => this % count_test,         &
+			count_validate     => this % count_validation,   &
 			batch_size         => this % batch_size          &			
         )
         
-        allocate( this % X_train(sample_point_X, count_train_sample) )        
-        allocate( this % y_train(sample_point_y, count_train_sample) )
-        allocate( this % y_train_pre(sample_point_y, count_train_sample) )
+		allocate( this % X_train_origin(point_X, count_train_origin) )        
+        allocate( this % y_train_origin(point_y, count_train_origin) )
+		
+        allocate( this % X_train(point_X, count_train) )        
+        allocate( this % y_train(point_y, count_train) )
+        allocate( this % y_train_pre(point_y, count_train) )
         
-		allocate( this % X_validate(sample_point_X, count_v_sample) )        
-        allocate( this % y_validate(sample_point_y, count_v_sample) )
-        allocate( this % y_validate_pre(sample_point_y, count_v_sample) )
+		allocate( this % X_validate(point_X, count_validate) )        
+        allocate( this % y_validate(point_y, count_validate) )
+        allocate( this % y_validate_pre(point_y, count_validate) )
 		
-        allocate( this % X_test(sample_point_X, count_test_sample) )
-        allocate( this % y_test(sample_point_y, count_test_sample) ) 
-        allocate( this % y_test_pre(sample_point_y, count_test_sample) ) 
+        allocate( this % X_test(point_X, count_test) )
+        allocate( this % y_test(point_y, count_test) ) 
+        allocate( this % y_test_pre(point_y, count_test) ) 
 		
-		allocate( this % X_batch(sample_point_X, batch_size) )        
-        allocate( this % y_batch(sample_point_y, batch_size) )
-        allocate( this % y_batch_pre(sample_point_y, batch_size) )
+		allocate( this % X_batch(point_X, batch_size) )        
+        allocate( this % y_batch(point_y, batch_size) )
+        allocate( this % y_batch_pre(point_y, batch_size) )
         
         end associate
         
@@ -343,6 +379,9 @@ contains   !|
     implicit none
         class(MNISTCase), intent(inout)  :: this	
         
+		deallocate( this % X_train_origin )        
+        deallocate( this % y_train_origin )
+		
         deallocate( this % X_train )        
         deallocate( this % y_train )
         deallocate( this % y_train_pre )

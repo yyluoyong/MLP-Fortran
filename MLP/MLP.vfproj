@@ -80,6 +80,7 @@
 		<File RelativePath=".\src\NNOptimizationSGD_module.f90"/>
 		<File RelativePath=".\ParameterSetting\NNParameter.nml"/>
 		<File RelativePath=".\src\NNParameter_Module.f90"/>
+		<File RelativePath=".\src\NNRandomBatchGeneratorShuffle_Module.f90"/>
 		<File RelativePath=".\src\NNRandomBatchGeneratorSimple_Module.f90"/>
 		<File RelativePath=".\src\NNStructure_Module.f90"/>
 		<File RelativePath=".\src\NNTrain_Module.f90"/>

@@ -278,6 +278,7 @@ contains   !|
             call this % get_error_or_accuracy(t_step, t, y, err, acc)
             
             if (err < this % error_avg) then
+            !if (err < this % error_single) then
                 exit
             end if
    
@@ -347,8 +348,8 @@ contains   !|
         
         write(UNIT=step_to_string, FMT='(I15)') step  
         write(UNIT=err_to_string, FMT='(ES16.5)') err
-        write(UNIT=max_err_to_string, FMT='(ES16.5)') max_err           
-        
+        write(UNIT=max_err_to_string, FMT='(ES16.5)') max_err                   
+               
         msg = "t_step = " // TRIM(ADJUSTL(step_to_string)) // &
             ",  err = " // TRIM(ADJUSTL(err_to_string)) // &
             ",  max_err = " // TRIM(ADJUSTL(max_err_to_string))
@@ -371,7 +372,7 @@ contains   !|
             stop       
         end select
         
-        if (MOD(step, 200) == 0) then
+        if (MOD(step, 100) == 0) then
             call LogInfo(msg)
         end if
         
@@ -398,7 +399,7 @@ contains   !|
                 
         t_shape = SHAPE(t)
         
-        if (TRIM(ADJUSTL(train_type)) == 'regression') then
+        !if (TRIM(ADJUSTL(train_type)) == 'regression') then
 		
 			!* root mean square error.                  
             err = SUM((t - y)*(t - y))
@@ -408,30 +409,30 @@ contains   !|
 			!* L_∞ 误差
             max_err = MAXVAL(ABS(t - y))
             
-        else if (TRIM(ADJUSTL(train_type)) == 'classification') then
-            
-            err = 0
-            max_err = 0
-            
-			!* 交叉熵 
-            do j=1, t_shape(2)
-                tmp = 0
-				!* error = -DOT_PRODUCT(t(:,j), LOG(y(:,j)))
-                do i=1, t_shape(1)              
-                    if (abs(t(i,j)) < 1.E-16 .and. abs(y(i,j)) < 1.E-16) then
-						!* 定义 0*log(0) = 0 
-                        continue
-                    else
-                        tmp = tmp - t(i,j) * LOG(y(i,j))
-                    end if
-                end do
-                if (tmp > max_err)  max_err = tmp
-                err = err + tmp
-            end do
-    
-            err = err / t_shape(2)
-
-		end if
+  !      else if (TRIM(ADJUSTL(train_type)) == 'classification') then
+  !          
+  !          err = 0
+  !          max_err = 0
+  !          
+		!	!* 交叉熵 
+  !          do j=1, t_shape(2)
+  !              tmp = 0
+		!		!* error = -DOT_PRODUCT(t(:,j), LOG(y(:,j)))
+  !              do i=1, t_shape(1)              
+  !                  if (abs(t(i,j)) < 1.E-16 .and. abs(y(i,j)) < 1.E-16) then
+		!				!* 定义 0*log(0) = 0 
+  !                      continue
+  !                  else
+  !                      tmp = tmp - t(i,j) * LOG(y(i,j))
+  !                  end if
+  !              end do
+  !              if (tmp > max_err)  max_err = tmp
+  !              err = err + tmp
+  !          end do
+  !  
+  !          err = err / t_shape(2)
+  !
+		!end if
         
         call LogDebug("NNTrain: SUBROUTINE m_get_total_error")
              

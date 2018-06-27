@@ -27,8 +27,8 @@ abstract interface
     import :: BaseRandomBatch
 	implicit none
 		class(BaseRandomBatch), intent(inout) :: this
-		real(PRECISION), dimension(:,:), intent(in) :: X_train
-		real(PRECISION), dimension(:,:), intent(in) :: y_train
+		real(PRECISION), dimension(:,:), intent(inout) :: X_train
+		real(PRECISION), dimension(:,:), intent(inout) :: y_train
 		real(PRECISION), dimension(:,:), intent(out) :: X_batch
         real(PRECISION), dimension(:,:), intent(out) :: y_batch
 
