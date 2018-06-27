@@ -82,8 +82,8 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     
     type(CrossEntropyWithSoftmax), pointer :: cross_entropy_function
 	
-	type(SimpleBatchGenerator), pointer :: batch_generator
-    !type(ShuffleBatchGenerator), pointer :: batch_generator
+	!type(SimpleBatchGenerator), pointer :: batch_generator
+    type(ShuffleBatchGenerator), pointer :: batch_generator
 	
 	type(OptimizationAdam), pointer :: adam_method
     
@@ -124,6 +124,8 @@ contains   !|
         character(len=20) :: round_step_to_str
 		integer :: train_sub_count
     
+        call Log_set_file_name_prefix("MNIST")
+
         call this % allocate_memory()
         
         call this % load_MNIST_data()
@@ -174,7 +176,7 @@ contains   !|
         call my_NNTrain % set_loss_function(this % cross_entropy_function)
 		
 		call this % adam_method % set_NN( my_NNTrain % my_NNStructure )
-        call this % adam_method % set_Adam_parameter(eps=0.01)
+        !call this % adam_method % set_Adam_parameter(eps=0.01)
 		call my_NNTrain % set_optimization_method( this % adam_method )
 		!----------------------------------------
 		
@@ -192,18 +194,14 @@ contains   !|
             write(UNIT=round_step_to_str, FMT='(I15)') round_step
             call LogInfo("round_step = " // TRIM(ADJUSTL(round_step_to_str)))
             
-            !call this % my_NNTrain % sim(X_train, &
-            !    y_train, y_train_pre)
-            
-            !if (MOD(round_step, 1) == 0) then
-			write(*, *) "Validation Set: "
-            call this % my_NNTrain % sim(X_validate, y_validate, y_validate_pre)
+            if (MOD(round_step, 1) == 0) then
+			    write(*, *) "Validation Set: "
+                call my_NNTrain % sim(X_validate, y_validate, y_validate_pre)
 			
-			write(*, *) "Test Set: "
-			call this % my_NNTrain % sim(X_test, y_test, y_test_pre)
-            !end if
-            
-            
+			    write(*, *) "Test Set: "
+			    call my_NNTrain % sim(X_test, y_test, y_test_pre)
+            end if
+
         end do
         
         !call this % my_NNTrain % train(X_train, &

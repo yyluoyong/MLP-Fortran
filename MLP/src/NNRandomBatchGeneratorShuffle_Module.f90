@@ -53,7 +53,7 @@ contains   !|
             this % is_random_init = .true.
         end if
         
-		call m_shuffle( X_train, y_train )
+		call m_shuffle( X_batch_shape(2), X_train, y_train )
 		
         lower_index = X_train_shape(2) - X_batch_shape(2) + 1
 		X_batch = X_train(:, lower_index:X_train_shape(2))
@@ -83,13 +83,14 @@ contains   !|
     end subroutine m_random_int
     
 	!* Ëæ»ú¡°Ï´ÅÆ¡±
-	subroutine m_shuffle( X_train, y_train )
+	subroutine m_shuffle( need_size, X_train, y_train )
     implicit none
+        integer, intent(in) :: need_size
         real(PRECISION), dimension(:,:), intent(inout) :: X_train
 		real(PRECISION), dimension(:,:), intent(inout) :: y_train
 		
         integer :: X_train_shape(2), y_train_shape(2)
-		integer :: i, j
+		integer :: i, j, step_lower
         real(PRECISION), dimension(:), allocatable :: X_tmp, y_tmp
 
 		X_train_shape = SHAPE(X_train)	
@@ -98,7 +99,8 @@ contains   !|
 		allocate( X_tmp(X_train_shape(1)) )
 		allocate( y_tmp(y_train_shape(1)) )
 		
-        do i=X_train_shape(2), 2, -1
+        step_lower = X_train_shape(2) - need_size + 1
+        do i=X_train_shape(2), step_lower, -1
 		
 			call m_random_int(1, i, j)
 			

@@ -152,8 +152,8 @@ contains   !|
 		
 			!* s <-- 老_1 * s + (1 - 老_1) * g
 			!* r <-- 老_2 * r + (1 - 老_2) * g × g
-            avg_dW     = avg_dW     + 1.E-4 * W
-            avg_dTheta = avg_dTheta + 1.E-4 * Theta
+            !avg_dW     = avg_dW     + 1.E-4 * W
+            !avg_dTheta = avg_dTheta + 1.E-4 * Theta
                 
 			W_S = rho_1 * W_S + (1 - rho_1) * avg_dW
 			W_R = rho_2 * W_R + (1 - rho_2) * avg_dW * avg_dW 
