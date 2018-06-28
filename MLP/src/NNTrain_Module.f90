@@ -27,11 +27,6 @@ type, public :: NNTrain
     ! 每层节点数目构成的数组: 
     !     数组的大小是所有层的数目（含输入层）
     integer, dimension(:), allocatable, public :: layers_node_count
-    
-    !* 权值的学习速率
-    real(kind=PRECISION), dimension(:), allocatable, public :: learning_rate_weight
-    !* 阈值的学习速率
-    real(kind=PRECISION), dimension(:), allocatable, public :: learning_rate_threshold   
 	
     !* 默认为空，即使用NNStructure中定义的(-1,1)
     character(len=30), private :: weight_threshold_init_methods_name = ''
@@ -60,10 +55,6 @@ type, public :: NNTrain
     !* 隐藏层每层结点数目的数组
     character(len=180), private :: NNLayerNodeCount_file = &
         './ParameterSetting/NNHiddenLayerNodeCount.parameter'
-        
-    !* 每层的权值学习速率、阈值学习速率
-    character(len=180), private :: NNLearningRate_file = &
-        './ParameterSetting/NNLearningRate.parameter'
     
     !* 每层的激活函数s
     character(len=180), private :: NNActivationFunctionList_file = &
@@ -382,12 +373,7 @@ contains   !|
                 TRIM(ADJUSTL(this % NNParameter_path)) // &
                 TRIM(ADJUSTL(caller_name)) // '_' // &
                 'NNHiddenLayerNodeCount.parameter'
-                
-            this % NNLearningRate_file = &
-                TRIM(ADJUSTL(this % NNParameter_path)) // &
-                TRIM(ADJUSTL(caller_name)) // '_' // &
-                'NNLearningRate.parameter'
-                
+
             this % NNActivationFunctionList_file = &
                 TRIM(ADJUSTL(this % NNParameter_path)) // &
                 TRIM(ADJUSTL(caller_name)) // '_' // &
@@ -530,13 +516,6 @@ contains   !|
         read( 30, * ) this % layers_node_count(1:hidden_l_count)       
         close(unit=30)
         
-        !* 读取权值、阈值学习速率数组
-        open( UNIT=30, FILE=this % NNLearningRate_file, &
-            form='formatted', status='old' )            
-        read( 30, * ) this % learning_rate_weight 
-        read( 30, * ) this % learning_rate_threshold
-        close(unit=30)
-        
         call LogDebug("NNTrain: SUBROUTINE m_load_NNParameter_array")
 		   
         return
@@ -589,9 +568,7 @@ contains   !|
         
         l_count = this % layers_count
         
-        allocate( this % layers_node_count(0:l_count)     )        
-        allocate( this % learning_rate_weight(l_count)    )
-        allocate( this % learning_rate_threshold(l_count) )
+        allocate( this % layers_node_count(0:l_count)     ) 
         allocate( this % act_fun_name_list(l_count)       )       
         
         this % is_allocate_done = .true.
@@ -609,8 +586,6 @@ contains   !|
         class(NNTrain), intent(inout)  :: this	
         
         deallocate( this % layers_node_count       )
-        deallocate( this % learning_rate_weight    )
-        deallocate( this % learning_rate_threshold )
 		deallocate( this % act_fun_name_list       )  
         
         this % is_allocate_done = .false.
