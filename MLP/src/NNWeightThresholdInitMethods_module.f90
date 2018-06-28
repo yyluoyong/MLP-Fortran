@@ -29,28 +29,32 @@ implicit none
         
         if (init_status == .FALSE.) then
             call LogErr("mod_NNWeightThresholdInitMethods: &
-                SUBROUTINE NN_weight_whreshold_init_main, &
-                my_NNStructure didn't init.")
+                SUBROUTINE NN_weight_whreshold_init_main," ) 
+            call LogErr("my_NNStructure didn't init.")
             stop
         end if
         
         
+		call LogInfo("mod_NNWeightThresholdInitMethods: &
+			SUBROUTINE NN_weight_whreshold_init_main")
+		
         !* Append：增加初始化方法
         select case (TRIM(ADJUSTL(init_method_name)))
         case ('')
-            call LogInfo("mod_NNWeightThresholdInitMethods: &
-                SUBROUTINE NN_weight_whreshold_init_main, &
-                my_NNStructure init default.")
+            call LogInfo("--> my_NNStructure init default.")
         case('zero')
             call m_zero_init(my_NNStructure)
+            call LogInfo("--> my_NNStructure init zero.")
         case('one')
             call m_one_init(my_NNStructure)
+            call LogInfo("--> my_NNStructure init [0,1].")
         case ('xavier')
             call m_xavier_init(my_NNStructure)
+            call LogInfo("--> my_NNStructure init xavier.")
         case default
-            call LogErr("mod_NNWeightThresholdInitMethods: &
-                SUBROUTINE NN_weight_whreshold_init_main, &
-                my_NNStructure didn't init.")
+            call LogErr("mod_NNWeightThresholdInitMethods:   &
+                SUBROUTINE NN_weight_whreshold_init_main")
+            call LogErr("--> my_NNStructure didn't init.")
             stop       
         end select
         
@@ -95,7 +99,7 @@ implicit none
         call m_weight_range_custom( my_NNStructure, 0.0, 1.0 )
         call m_threshold_range_custom( my_NNStructure, 0.0, 1.0 )
         
-        call LogInfo("mod_NNWeightThresholdInitMethods: &
+        call LogDebug("mod_NNWeightThresholdInitMethods: &
             SUBROUTINE m_one_init.")
         
         return
@@ -187,7 +191,7 @@ implicit none
             end associate
         end do
         
-        call LogInfo("mod_NNWeightThresholdInitMethods: &
+        call LogDebug("mod_NNWeightThresholdInitMethods: &
             SUBROUTINE m_xavier_init.")
         
         return

@@ -79,8 +79,8 @@ contains   !|
         
         call this % init_train_data()        
         
-        call this % my_NNTrain % init('2DSinCase', this % X_train, &
-            this % y_train)
+        call this % my_NNTrain % init('2DSinCase', this % sample_point_X, &
+            this % sample_point_y)
         
         call this % my_NNTrain % train(this % X_train, &
             this % y_train, this % y_train_nn)

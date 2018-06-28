@@ -223,7 +223,42 @@ implicit none
         return
     end subroutine uniform_random_array_2D
     !====
-        
+ 
+	!* 浮点数转换为字符串
+	subroutine float_to_string(num, str, format_str)
+	implicit none
+		real(PRECISION), intent(in) :: num
+		character(len=*), intent(out) :: str
+		character(len=*), optional, intent(in) :: format_str
+		
+		!* 浮点数默认输出格式
+		character(len=10) :: default_format_str = "(ES16.5)"
+		
+		if (PRESENT(format_str)) then
+			write(UNIT=str, FMT=TRIM(ADJUSTL(format_str))) num
+		else
+			write(UNIT=str, FMT=TRIM(ADJUSTL(default_format_str))) num
+		end if
+	
+		return
+	end subroutine
+	!====
+	
+	!* 整数转换为字符串
+	subroutine int_to_string(num, str)
+	implicit none
+		integer, intent(in) :: num
+		character(len=*), intent(out) :: str
+		
+		!* 整数默认输出格式
+		character(len=10) :: default_format_str = "(I15)"
+		
+		write(UNIT=str, FMT=TRIM(ADJUSTL(default_format_str))) num
+	
+		return
+	end subroutine
+	!====
+ 
     subroutine test_output_tecplot_line()
     implicit none
         real(PRECISION), dimension(:), allocatable :: &

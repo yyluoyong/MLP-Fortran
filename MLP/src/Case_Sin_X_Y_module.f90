@@ -20,7 +20,7 @@ type, extends(BaseCalculationCase), public :: SinXYCase
     !* 测试集样本数量
     integer, public :: count_test_sample = 100
     
-    !* 单个样本的数据量: 28 ×28 = 784
+    !* 单个样本的数据量
     integer, public :: sample_point_X = 2
     integer, public :: sample_point_y = 1
     
@@ -74,8 +74,8 @@ contains   !|
         
         allocate( y, SOURCE = this % y_train)
         
-        call this % my_NNTrain % init('Sin_X_Y_Case', this % X_train, &
-            this % y_train)
+        call this % my_NNTrain % init('Sin_X_Y_Case', &
+            this % sample_point_X, this % sample_point_y)
         
         call this % my_NNTrain % train(this % X_train, &
             this % y_train, y)

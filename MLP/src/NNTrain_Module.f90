@@ -7,6 +7,8 @@ use mod_BaseActivationFunction
 use mod_NNStructure
 use mod_Log
 use mod_BaseGradientOptimizationMethod
+use mod_NNTools
+use mod_Tools
 implicit none    
 
 !-----------------------------------
@@ -18,10 +20,7 @@ type, public :: NNTrain
     real(kind=PRECISION), public :: error_single
     !* 全部样本的平均误差阈值
     real(kind=PRECISION), public :: error_avg
-        
-    !* 样本数量
-    integer, public :: sample_count 
-        
+
     ! 层的数目，不含输入层
     integer, public :: layers_count    
         
@@ -32,17 +31,10 @@ type, public :: NNTrain
     !* 权值的学习速率
     real(kind=PRECISION), dimension(:), allocatable, public :: learning_rate_weight
     !* 阈值的学习速率
-    real(kind=PRECISION), dimension(:), allocatable, public :: learning_rate_threshold
-
-    !* 训练数据，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: X
-    !* 训练数据对应的目标值，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y
-    
+    real(kind=PRECISION), dimension(:), allocatable, public :: learning_rate_threshold   
 	
     !* 默认为空，即使用NNStructure中定义的(-1,1)
-    character(len=30), private :: &
-        weight_threshold_init_methods_name = ''
+    character(len=30), private :: weight_threshold_init_methods_name = ''
     
     !* 调用者标识，可用于读取指定的配置信息等。
     character(len=180), private :: caller_name = ''
@@ -109,10 +101,7 @@ contains   !|
     procedure, public :: train => m_train
     procedure, public :: sim   => m_sim
 
-    procedure, private :: standard_BP_update     => m_standard_BP_update
-    procedure, private :: accumulation_BP_update => m_accumulation_BP_update
-    
-    procedure, private :: get_error_or_accuracy => m_get_error_or_accuracy
+    procedure, private :: step_post_process => m_step_post_process
     
     procedure, private :: allocate_memory   => m_allocate_memory
     procedure, private :: deallocate_memory => m_deallocate_memory
@@ -130,18 +119,8 @@ end type NNTrain
     !-------------------------
     private :: m_init
     private :: m_train
-    private :: m_sim
-    
-    private :: m_standard_BP_update
-    private :: m_accumulation_BP_update
-    
-    private :: m_get_total_error
-    private :: m_get_accuracy
-    private :: m_get_error_or_accuracy
-    
-    private :: m_allocate_memory
-    private :: m_deallocate_memory
-    
+    private :: m_sim    
+
     private :: m_set_caller_name
     private :: m_set_train_type
     private :: m_set_weight_threshold_init_methods_name
@@ -152,6 +131,11 @@ end type NNTrain
     private :: m_load_NNParameter
     private :: m_load_NNParameter_array
     private :: m_load_NNActivation_Function_List
+    
+    private :: m_step_post_process
+	
+	private :: m_allocate_memory
+    private :: m_deallocate_memory
     !-------------------------
 	
 !||||||||||||    
@@ -162,17 +146,15 @@ contains   !|
     !* (1). 从文件中读取网络参数、训练参数;
     !* (2). 申请内存空间;
     !* (3). 初始化网络结构.
-    subroutine m_init( this, caller_name, X, y )
+    subroutine m_init( this, caller_name, count_input_node, count_output_node )
     use mod_NNWeightThresholdInitMethods
     implicit none
         class(NNTrain), intent(inout) :: this
         character(len=*), intent(in) :: caller_name
-        real(PRECISION), dimension(:,:), intent(in) :: X
-        real(PRECISION), dimension(:,:), intent(in) :: y
+        integer, intent(in) :: count_input_node, count_output_node
 
         class(BaseActivationFunction), pointer :: pt_act_fun
         type(ActivationFunctionList),  pointer :: pt_act_fun_list
-        integer :: X_shape(2), Y_shape(2) 
         integer :: i
         
         if( .not. this % is_init ) then
@@ -186,43 +168,39 @@ contains   !|
             call this % load_NNParameter_array()
             call this % load_NNActivation_Function_List()
             
-            X_shape = SHAPE(X)
-            Y_shape = SHAPE(y)
-            
+			associate (                                       &
+				layers_count      => this % layers_count,     &
+                layers_node_count => this % layers_node_count &	
+			)   
+			
             !* 输入层结点数目
-            this % layers_node_count(0) = X_shape(1)
+            layers_node_count(0) = count_input_node
             !* 输出层结点数目
-            this % layers_node_count(this % layers_count) =  &
-                Y_shape(1)
-            !* 样本数目
-            this % sample_count = X_shape(2)                    
-        
-            !* 复制训练的数据与目标，
-            !*     注：不用指针是因为在当前类中可能改变X, y
-            allocate( this % X, SOURCE=X )
-            allocate( this % y, SOURCE=y )
-            
+            layers_node_count(layers_count) = count_output_node                
             
             !* 初始化 my_NNStructure
             allocate( this % my_NNStructure )
             
             allocate( pt_act_fun_list )
             
-            call this % my_NNStructure % init_basic( &
-                this % layers_count, this % layers_node_count)
+            call this % my_NNStructure % init_basic( layers_count,layers_node_count)
         
+			!* 给每层设置激活函数
             do i=1, this % layers_count
                 call pt_act_fun_list % get_activation_function_by_name( &
-                    this % act_fun_name_list(i), &
+                    this % act_fun_name_list(i),                        &
                     this % my_NNStructure % pt_Layer(i) % act_fun)           
             end do
             
+			!* 给每层权值、阈值按指定方式初始化
             call NN_weight_threshold_init_main(            &
                 this % weight_threshold_init_methods_name, &
                 this % my_NNStructure)
                 
             this % is_init = .true.
             
+			end associate
+			
             call LogDebug("NNTrain: SUBROUTINE m_init")
             
         end if
@@ -242,7 +220,7 @@ contains   !|
         
         integer :: sample_index, t_step
         integer :: X_shape(2)
-        real(PRECISION) :: err, acc
+        real(PRECISION) :: err, max_err, acc
         character(len=180) :: msg
         
         X_shape = SHAPE(X)        
@@ -275,7 +253,7 @@ contains   !|
 			call this % gradient_optimization_method % update_NN()
 			call this % gradient_optimization_method % post_process()
 			
-            call this % get_error_or_accuracy(t_step, t, y, err, acc)
+            call this % step_post_process(t_step, t, y, err, max_err, acc)
             
             if (err < this % error_avg) then
             !if (err < this % error_single) then
@@ -317,7 +295,7 @@ contains   !|
         
         !* undo：根据已有的 t，预测的 y，计算误差等等.
         !* call this % get_error(t, y)
-        call m_get_accuracy(t, y, acc) 
+        call calc_classify_accuracy(t, y, acc) 
         
         write(UNIT=acc_to_string, FMT='(F8.5)') acc
         msg = "Sim acc = " // TRIM(ADJUSTL(acc_to_string))
@@ -329,7 +307,7 @@ contains   !|
     
     
     !* 获取单步迭代的误差或者精确度等并输出显示信息
-    subroutine m_get_error_or_accuracy( this, step, t, y, err, acc )
+    subroutine m_step_post_process( this, step, t, y, err, max_err, acc )
     implicit none
         class(NNTrain), intent(inout) :: this
         integer, intent(in) :: step
@@ -337,14 +315,24 @@ contains   !|
         real(PRECISION), dimension(:,:), intent(in) :: t
         real(PRECISION), dimension(:,:), intent(in) :: y
         real(PRECISION), intent(inout) :: err
-        real(PRECISION), optional, intent(inout) :: acc
+        real(PRECISION), optional, intent(inout) :: acc, max_err
     
-        real(PRECISION) :: max_err, acc_local
+        real(PRECISION) :: acc_local
         character(len=20) :: step_to_string, err_to_string,  &
             max_err_to_string, acc_to_string
-        character(len=180) :: msg
-        
-        call m_get_total_error( this % train_type, t, y, err, max_err )
+        character(len=180) :: msg        
+		
+		select case (TRIM(ADJUSTL(this % train_type)))
+        case ('regression')
+            call calc_L_2_error(t, y, err)
+			call calc_L_inf_error(t, y, max_err)
+        case ('classification')
+            call calc_cross_entropy_error( t, y, err, max_err )
+        case default
+            call LogErr("NNTrain: SUBROUTINE m_step_post_process, &
+                train_type error.")
+            stop       
+        end select
         
         write(UNIT=step_to_string, FMT='(I15)') step  
         write(UNIT=err_to_string, FMT='(ES16.5)') err
@@ -358,198 +346,25 @@ contains   !|
         case ('regression')
             continue
         case ('classification')
-            call m_get_accuracy( t, y, acc_local )
+            call calc_classify_accuracy( t, y, acc_local )
             if (PRESENT(acc)) then
                 acc = acc_local        
             end if
             write(UNIT=acc_to_string, FMT='(F8.5)') acc_local
             msg = TRIM(ADJUSTL(msg)) // ", acc = " // &
-                TRIM(ADJUSTL(acc_to_string))
-        case default
-            call LogErr("NNTrain: &
-                SUBROUTINE m_get_error_or_accuracy, &
-                train_type error")
-            stop       
+                TRIM(ADJUSTL(acc_to_string))     
         end select
         
         if (MOD(step, 100) == 0) then
             call LogInfo(msg)
         end if
         
-        call LogDebug("NNTrain: SUBROUTINE m_get_error_or_accuracy")
+        call LogDebug("NNTrain: SUBROUTINE m_step_post_process")
         
         return
-    end subroutine m_get_error_or_accuracy
-    !====
-    
-    !* 静态子程序，误差计算
-	!*   回归问题：计算 L_2、L_∞ 误差；
-	!*   分类问题：计算 交叉熵.
-    subroutine m_get_total_error( train_type, t, y, err, max_err )
-    implicit none
-        character(len=*), intent(in) :: train_type
-        !* t 是实际输出，y 是网络预测输出
-        real(PRECISION), dimension(:,:), intent(in) :: t
-        real(PRECISION), dimension(:,:), intent(in) :: y
-        real(PRECISION), intent(inout) :: err, max_err
-        
-        integer :: t_shape(2)   
-        integer :: i, j
-        real(PRECISION) :: tmp
-                
-        t_shape = SHAPE(t)
-        
-        !if (TRIM(ADJUSTL(train_type)) == 'regression') then
-		
-			!* root mean square error.                  
-            err = SUM((t - y)*(t - y))
-            err = err / ( t_shape(1) * t_shape(2) )
-            err = SQRT(err)
-        
-			!* L_∞ 误差
-            max_err = MAXVAL(ABS(t - y))
-            
-  !      else if (TRIM(ADJUSTL(train_type)) == 'classification') then
-  !          
-  !          err = 0
-  !          max_err = 0
-  !          
-		!	!* 交叉熵 
-  !          do j=1, t_shape(2)
-  !              tmp = 0
-		!		!* error = -DOT_PRODUCT(t(:,j), LOG(y(:,j)))
-  !              do i=1, t_shape(1)              
-  !                  if (abs(t(i,j)) < 1.E-16 .and. abs(y(i,j)) < 1.E-16) then
-		!				!* 定义 0*log(0) = 0 
-  !                      continue
-  !                  else
-  !                      tmp = tmp - t(i,j) * LOG(y(i,j))
-  !                  end if
-  !              end do
-  !              if (tmp > max_err)  max_err = tmp
-  !              err = err + tmp
-  !          end do
-  !  
-  !          err = err / t_shape(2)
-  !
-		!end if
-        
-        call LogDebug("NNTrain: SUBROUTINE m_get_total_error")
-             
-        return
-    end subroutine m_get_total_error
-    !====
-    
-    !* 静态子程序，正确率计算
-	!*   分类问题：需要根据网络输出计算正确率.
-    subroutine m_get_accuracy( t, y, acc )
-    implicit none
-        real(PRECISION), dimension(:,:), intent(in) :: t
-        real(PRECISION), dimension(:,:), intent(in) :: y
-        real(PRECISION), intent(inout) :: acc
-    
-        integer :: y_shape(2), j, tag
-        integer :: max_index_t(1), max_index_y(1)
-        
-        y_shape = SHAPE(y)
-        
-        tag = 0
-        do j=1, y_shape(2)
-            max_index_t = MAXLOC(t(:,j))
-            max_index_y = MAXLOC(y(:,j))
-            
-            if (max_index_t(1) == max_index_y(1)) then
-                tag = tag + 1
-            end if
-        end do
-        
-        acc = 1.0 * tag / y_shape(2)
-        
-        call LogDebug("NNTrain: SUBROUTINE m_get_accuracy")
-        
-        return
-    end subroutine m_get_accuracy
-    !====
-
-    !* 标准BP算法.
-    subroutine m_standard_BP_update( this )
-    implicit none
-        class(NNTrain), intent(inout) :: this
-        
-        integer :: layer_index, l_count
-        real(PRECISION) :: eta_w, eta_theta
-        
-        l_count = this % layers_count
-        
-        do layer_index=1, l_count
-        
-            eta_w = this % learning_rate_weight(layer_index)
-            eta_theta = this % learning_rate_threshold(layer_index)
-            
-            associate (                                                            &
-                W      => this % my_NNStructure % pt_W( layer_index ) % W,         &
-                Theta  => this % my_NNStructure % pt_Theta( layer_index ) % Theta, &
-                dW     => this % my_NNStructure % pt_Layer( layer_index ) % dW,    &               
-                dTheta => this % my_NNStructure % pt_Layer( layer_index ) % dTheta &
-            )
-                
-            !* W = W - η * dW
-            W = W - eta_w * dW
-            
-            !* θ = θ - η * dTheta
-            Theta = Theta - eta_theta * dTheta
-           
-            end associate
-        end do
-        
-        return
-    end subroutine m_standard_BP_update
-    !====
-    
-    
-    !* 累积BP算法.
-    subroutine m_accumulation_BP_update( this )
-    implicit none
-        class(NNTrain), intent(inout) :: this
-        
-        integer :: layer_index, l_count
-        real(PRECISION) :: eta_w, eta_theta
-        
-        l_count = this % layers_count     
-        
-        call LogDebug("NNTrain: SUBROUTINE m_train step")
-        
-        do layer_index=1, l_count
-        
-            eta_w = this % learning_rate_weight(layer_index)
-            eta_theta = this % learning_rate_threshold(layer_index)
-        
-            associate ( &
-                W          => this % my_NNStructure % pt_W( layer_index ) % W,             &
-                Theta      => this % my_NNStructure % pt_Theta( layer_index ) % Theta,     &
-                avg_dW     => this % my_NNStructure % pt_Layer( layer_index ) % avg_dW,    &              
-                avg_dTheta => this % my_NNStructure % pt_Layer( layer_index ) % avg_dTheta &
-            )
-                      
-            !* W = W - η * ∑ dW
-			!* undo: avg_dW 除以样本数量
-            W = W - eta_w * avg_dW !/ this % sample_count
-
-            !* θ = θ - η * ∑ dTheta
-			!* undo: avg_dW 除以样本数量
-            Theta = Theta - eta_theta * avg_dTheta !/ this % sample_count
-            
-            !* 每结束一轮必须清 0
-            avg_dW = 0
-            avg_dTheta = 0
-                
-            end associate
-        end do
-        
-        return
-    end subroutine m_accumulation_BP_update
+    end subroutine m_step_post_process
     !====  
-    
+
     !* 初始化各参数文件的完整路径
     subroutine m_init_NNParameter( this, caller_name )
     implicit none
@@ -602,14 +417,19 @@ contains   !|
     
     !* 设置权值、阈值处理方法的名字
     subroutine m_set_weight_threshold_init_methods_name( this, name )
+    use mod_NNWeightThresholdInitMethods
     implicit none
         class(NNTrain), intent(inout) :: this
         character(len=*), intent(in) :: name
     
         this % weight_threshold_init_methods_name = name
+		
+		call NN_weight_threshold_init_main(            &
+            this % weight_threshold_init_methods_name, &
+            this % my_NNStructure)
         
         call LogDebug("mod_NNWeightThresholdInitMethods: &
-            SUBROUTINE set_weight_threshold_init_methods_name")
+            SUBROUTINE set_weight_threshold_init_methods_name.")
         
         return
     end subroutine

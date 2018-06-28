@@ -109,12 +109,13 @@ contains   !|
             y_train_pre => this % y_train_pre, &
             X_test      => this % X_test,      &
             y_test      => this % y_test,      &
-            y_test_pre  => this % y_test_pre   &              
+            y_test_pre  => this % y_test_pre   & 
         )
         
         call this % normalization(X_train)
         
-        call this % my_NNTrain % init('MoonCase', X_batch, y_batch)
+        call this % my_NNTrain % init('MoonCase', &
+            this % sample_point_X, this % sample_point_y)
         
         call this % my_NNTrain % set_train_type('classification')
         

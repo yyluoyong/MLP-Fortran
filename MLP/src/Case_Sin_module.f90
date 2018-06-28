@@ -83,7 +83,8 @@ contains   !|
             y_train_pre => this % y_train_pre  &              
         )
         
-        call this % my_NNTrain % init('SinCase', X_train, y_train)   
+        call this % my_NNTrain % init('SinCase', &
+            this % sample_point_X, this % sample_point_y)   
         
         call this % my_NNTrain % &
             set_weight_threshold_init_methods_name('xavier') 

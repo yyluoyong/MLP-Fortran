@@ -650,8 +650,6 @@ contains   !|
         
         call RANDOM_SEED()
         
-        call LogInfo("NNStructure: SUBROUTINE m_init_layer_weight")
-        
         do layer_index=1, l_count
             associate (                            &              
                 W => this % pt_W(layer_index) % W  &
@@ -665,7 +663,7 @@ contains   !|
         
         this % is_init_weight = .true.
         
-        call LogDebug("NNStructure: SUBROUTINE m_init_layer_weight")
+        call LogDebug("NNStructure: SUBROUTINE m_init_layer_weight.")
         
         return
     end subroutine m_init_layer_weight
@@ -681,9 +679,7 @@ contains   !|
         
         l_count = this % layers_count
         
-        call RANDOM_SEED()
-        
-        call LogInfo("NNStructure: SUBROUTINE m_init_layer_threshold")
+        call RANDOM_SEED()       
         
         do layer_index=1, l_count
             associate (                                        &              
@@ -698,7 +694,7 @@ contains   !|
   
         this % is_init_threshold = .true.
         
-        call LogDebug("NNStructure: SUBROUTINE m_init_layer_threshold")
+        call LogDebug("NNStructure: SUBROUTINE m_init_layer_threshold.")
         
         return
     end subroutine m_init_layer_threshold

@@ -150,15 +150,17 @@ contains   !|
 			count_train_origin => this % count_train_origin, &
             count_test         => this % count_test,         &
 			count_validate     => this % count_validation,   &
-			batch_size         => this % batch_size          &	
+			batch_size         => this % batch_size,         &	
+            sample_point_X     => this % sample_point_X,     &
+            sample_point_y     => this % sample_point_y      &
         )   
         
-        !----------------------------------------
-		X_train = X_train / 128.0 - 1.0
-		X_test  = X_test  / 128.0 - 1.0		
-        
+        !----------------------------------------	        
 		X_train = X_train_origin(:, 1:count_train)
 		y_train = y_train_origin(:, 1:count_train)
+        
+        X_train = X_train / 128.0 - 1.0
+		X_test  = X_test  / 128.0 - 1.0	
 		
 		train_sub_count = count_train - count_validate
 		
@@ -168,8 +170,7 @@ contains   !|
 		
 		
 		!----------------------------------------
-        !call this % my_NNTrain % init('MNISTCase', X_train, y_train)
-		call my_NNTrain % init('MNISTCase', X_batch, y_batch)
+		call my_NNTrain % init('MNISTCase', sample_point_X, sample_point_y)
         
         call my_NNTrain % set_train_type('classification')        
         call my_NNTrain % set_weight_threshold_init_methods_name('xavier')            
@@ -186,7 +187,7 @@ contains   !|
             call this % batch_generator % get_next_batch( &
                 X_train, y_train, X_batch, y_batch )
             
-            write(*, *) "Batch Set: "
+            call LogInfo("Batch Set: ")
             call this % my_NNTrain % sim(X_batch, y_batch, y_batch_pre)
                 
             call my_NNTrain % train(X_batch, y_batch, y_batch_pre)    
@@ -195,10 +196,10 @@ contains   !|
             call LogInfo("round_step = " // TRIM(ADJUSTL(round_step_to_str)))
             
             if (MOD(round_step, 1) == 0) then
-			    write(*, *) "Validation Set: "
+			    call LogInfo("Validation Set: ")
                 call my_NNTrain % sim(X_validate, y_validate, y_validate_pre)
 			
-			    write(*, *) "Test Set: "
+			    call LogInfo("Test Set: ")
 			    call my_NNTrain % sim(X_test, y_test, y_test_pre)
             end if
 
@@ -270,8 +271,8 @@ contains   !|
             read(30) magic_number, sample_count
             
             if (magic_number /= 2049) then
-                call LogErr("MNISTCase: SUBROUTINE m_read_MNIST_data_from_file &
-                    --> magic_number /= 2049.")
+                call LogErr("MNISTCase: SUBROUTINE m_read_MNIST_data_from_file")
+                call LogErr("--> magic_number /= 2049.")
                 stop
             end if
             
@@ -298,8 +299,8 @@ contains   !|
             read(30) magic_number, sample_count, row, column
             
             if (magic_number /= 2051) then
-                call LogErr("MNISTCase: SUBROUTINE m_read_MNIST_data_from_file &
-                    --> magic_number /= 2051.")
+                call LogErr("MNISTCase: SUBROUTINE m_read_MNIST_data_from_file")
+                call LogErr("--> magic_number /= 2051.")
                 stop
             end if
             
@@ -324,7 +325,7 @@ contains   !|
     implicit none
         class(MNISTCase), intent(inout) :: this
         
-        associate (                                         &
+        associate (                                          &
             point_X            => this % sample_point_X,     &
             point_y            => this % sample_point_y,     &
             count_train        => this % count_train,        &
