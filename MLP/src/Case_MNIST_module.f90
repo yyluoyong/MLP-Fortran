@@ -155,13 +155,13 @@ contains   !|
             sample_point_y     => this % sample_point_y      &
         )   
         
-        !----------------------------------------	        
+        !----------------------------------------
+        X_train_origin = X_train_origin / 128.0 - 1.0
+		X_test         = X_test  / 128.0 - 1.0	
+            
 		X_train = X_train_origin(:, 1:count_train)
 		y_train = y_train_origin(:, 1:count_train)
-        
-        X_train = X_train / 128.0 - 1.0
-		X_test  = X_test  / 128.0 - 1.0	
-		
+	
 		train_sub_count = count_train - count_validate
 		
 		X_validate = X_train_origin(:, train_sub_count+1:count_train_origin)
@@ -173,7 +173,7 @@ contains   !|
 		call my_NNTrain % init('MNISTCase', sample_point_X, sample_point_y)
         
         call my_NNTrain % set_train_type('classification')        
-        call my_NNTrain % set_weight_threshold_init_methods_name('xavier')            
+        !call my_NNTrain % set_weight_threshold_init_methods_name('xavier')            
         call my_NNTrain % set_loss_function(this % cross_entropy_function)
 		
 		call this % adam_method % set_NN( my_NNTrain % my_NNStructure )
