@@ -502,7 +502,8 @@ contains   !|
 		!* 最后一层公式略有区别，详情见PDF文档.
 		if (layer_index == this % layers_count) then
 			
-			associate (                                                      &                              
+			associate (                                                      &  
+                W           => this % pt_W(layer_index) % W,                 &               
                 dW          => this % pt_Layer(layer_index) % dW,            &
                 matrix_part => this % pt_Layer(layer_index) % d_Matrix_part, &
                 Z_pre       => this % pt_Layer(layer_index-1) % Z            &          
@@ -513,7 +514,9 @@ contains   !|
 				do j=1, M
 					dW(i, j) = Z_pre(j) * matrix_part(i)
 				end do
-			end do
+            end do
+            
+            dW = dW + 1.E-4 * W
 
 			end associate
 			
@@ -523,7 +526,8 @@ contains   !|
 		
 		!---------------------------------
 		!* (2)：其余层
-        associate (                                                      &                              
+        associate (                                                      & 
+            W           => this % pt_W(layer_index) % W,                 & 
             dW          => this % pt_Layer(layer_index) % dW,            &
             R           => this % pt_Layer(layer_index) % R,             &
             matrix_part => this % pt_Layer(layer_index) % d_Matrix_part, &
@@ -540,6 +544,8 @@ contains   !|
                 dW(i, j) = df_to_dr * Z_pre(j) * matrix_part(i)
             end do
         end do
+        
+        dW = dW + 1.E-4 * W
         
         end associate
 		!---------------------------------
@@ -566,7 +572,8 @@ contains   !|
 		!* (1)：最后一层
 		!* 最后一层公式略有区别，详情见PDF文档.
 		if (layer_index == this % layers_count) then
-			associate (                                                     &      
+			associate (                                                     & 
+                Theta       => this % pt_Theta(layer_index) % Theta,        &
                 dTheta      => this % pt_Layer(layer_index) % dTheta,       &
                 matrix_part => this % pt_Layer(layer_index) % d_Matrix_part &
             )
@@ -574,8 +581,10 @@ contains   !|
 			!* dTheta^{k}_{i} = -E_i * d_Matrix_part
 			do i=1, N   
 				dTheta(i) = -matrix_part(i)
-			end do
+            end do
 		
+            dTheta = dTheta + 1.E-4 * Theta
+            
 			end associate
 			
 			return
@@ -584,7 +593,8 @@ contains   !|
 		
 		!---------------------------------
 		!* (2)：其余层
-        associate (                                                      &      
+        associate (                                                      &
+            Theta       => this % pt_Theta(layer_index) % Theta,        &
             dTheta      => this % pt_Layer(layer_index) % dTheta,        &
             R           => this % pt_Layer(layer_index) % R,             &
             matrix_part => this % pt_Layer(layer_index) % d_Matrix_part, &
@@ -598,6 +608,8 @@ contains   !|
             !* dTheta^{k}_{i} = -f'(r^{k}_i) * E_i * d_Matrix_part
             dTheta(i) = -df_to_dr * matrix_part(i)
         end do
+        
+        dTheta = dTheta + 1.E-4 * Theta
         
         end associate
 		!---------------------------------

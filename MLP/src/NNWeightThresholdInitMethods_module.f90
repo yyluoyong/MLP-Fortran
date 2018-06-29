@@ -36,7 +36,7 @@ implicit none
         
         
 		call LogInfo("mod_NNWeightThresholdInitMethods: &
-			SUBROUTINE NN_weight_whreshold_init_main")
+			SUBROUTINE NN_weight_threshold_init_main")
 		
         !* Append：增加初始化方法
         select case (TRIM(ADJUSTL(init_method_name)))
