@@ -82,8 +82,8 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     
     type(CrossEntropyWithSoftmax), pointer :: cross_entropy_function
 	
-	!type(SimpleBatchGenerator), pointer :: batch_generator
-    type(ShuffleBatchGenerator), pointer :: batch_generator
+	type(SimpleBatchGenerator), pointer :: batch_generator
+    !type(ShuffleBatchGenerator), pointer :: batch_generator
 	
 	type(OptimizationAdam), pointer :: adam_method
     
