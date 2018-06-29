@@ -244,6 +244,7 @@ contains   !|
         integer :: X_shape(2)
         real(PRECISION) :: err, acc
         character(len=180) :: msg
+        character(len=20) :: step_to_string
         
         X_shape = SHAPE(X)        
         
@@ -279,6 +280,8 @@ contains   !|
             call this % get_error_or_accuracy(t_step, t, y, err, acc)
             
             if (err < this % error_avg) then
+                write(UNIT=step_to_string, FMT='(I15)') t_step
+                call LogInfo("---> step_end = " // TRIM(ADJUSTL(step_to_string)))
                 exit
             end if
    

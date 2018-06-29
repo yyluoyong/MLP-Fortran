@@ -138,6 +138,8 @@ contains   !|
         X_train = X_train / 128.0 - 1.0
 		X_test  = X_test  / 128.0 - 1.0		
         
+        train_sub_count = this % count_train_sample - this % count_validation_sample
+        
 		X_validate = X_train(:, train_sub_count+1:this % count_train_sample)
 		y_validate = y_train(:, train_sub_count+1:this % count_train_sample)
 		
@@ -149,9 +151,7 @@ contains   !|
         call my_NNTrain % set_loss_function(this % cross_entropy_function)
 		
 		call this % adam_method % set_NN( my_NNTrain % my_NNStructure )
-		call my_NNTrain % set_optimization_method( this % adam_method )
-		
-		train_sub_count = this % count_train_sample - this % count_validation_sample
+		call my_NNTrain % set_optimization_method( this % adam_method )	
 		
 		do round_step=1, train_count     
             

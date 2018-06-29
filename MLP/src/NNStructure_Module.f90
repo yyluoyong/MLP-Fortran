@@ -767,6 +767,9 @@ contains   !|
             
             allocate( this % pt_Layer( layer_index ) % dTheta(N) )
             allocate( this % pt_Layer( layer_index ) % avg_dTheta(N) )
+            
+            this % pt_Layer( layer_index ) % avg_dW = 0
+            this % pt_Layer( layer_index ) % avg_dTheta = 0
         end do
         
         call LogDebug("NNStructure: SUBROUTINE m_allocate_memory")

@@ -332,4 +332,5 @@ ASALocalRun/
 *.png
 *.txt
 *.fortran
+*.exe
 Output
