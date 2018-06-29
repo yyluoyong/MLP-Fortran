@@ -48,10 +48,11 @@ abstract interface
 	!====
 	
 	!* 更新神经网络的参数
-	subroutine abs_update_NN( this )
+	subroutine abs_update_NN( this, bp_algorithm )
     import :: BaseGradientOptimizationMethod
 	implicit none
 		class(BaseGradientOptimizationMethod), intent(inout) :: this
+		character(len=*), optional, intent(in) :: bp_algorithm
 
 	end subroutine
 	!====

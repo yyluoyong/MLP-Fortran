@@ -64,17 +64,13 @@ implicit none
         procedure, public :: forward_propagation  => m_forward_propagation
         procedure, public :: backward_propagation => m_backward_propagation
 		
-		procedure, public :: calc_avg_gradient => m_calc_avg_gradient
+		procedure, public :: calc_average_gradient     => m_calc_avg_gradient
+		procedure, public :: set_average_gradient_zero => m_set_average_gradient_zero
         
         procedure, public :: set_loss_function             => m_set_loss_function
-		procedure, public :: set_activation_function_layer => m_set_act_fun_layer
+		procedure, public :: set_activation_function_layer => m_set_act_fun_layer		
         
-        procedure, private :: get_all_derivative_variable => m_get_all_derivative_variable
-                
-        procedure, private :: allocate_pointer   => m_allocate_pointer
-        procedure, private :: allocate_memory    => m_allocate_memory
-        procedure, private :: deallocate_pointer => m_deallocate_pointer
-        procedure, private :: deallocate_memory  => m_deallocate_memory
+        procedure, private :: get_all_derivative_variable => m_get_all_derivative_variable                
        
         procedure, private :: set_input_layer  => m_set_input_layer
         procedure, private :: set_output_layer => m_set_output_layer
@@ -91,6 +87,11 @@ implicit none
         
         procedure, private :: get_layer_dTheta => m_get_layer_dTheta
         procedure, private :: get_all_dTheta   => m_get_all_dTheta
+		
+		procedure, private :: allocate_pointer   => m_allocate_pointer
+        procedure, private :: allocate_memory    => m_allocate_memory
+        procedure, private :: deallocate_pointer => m_deallocate_pointer
+        procedure, private :: deallocate_memory  => m_deallocate_memory
 
         final :: NNStructure_clean_space
 
@@ -117,6 +118,7 @@ implicit none
     private :: m_forward_propagation
     private :: m_backward_propagation
 	private :: m_calc_avg_gradient
+	private :: m_set_average_gradient_zero
     private :: m_get_all_layer_local_var
     
     private :: m_get_all_d_Matrix_part
@@ -269,6 +271,35 @@ contains   !|
         
         return
     end subroutine m_calc_avg_gradient
+    !====  
+	
+	
+	!* 将平均梯度置 0
+	subroutine m_set_average_gradient_zero( this )
+    implicit none
+        class(NNStructure), intent(inout) :: this
+        
+        integer :: layer_index, l_count
+        
+        l_count = this % layers_count
+        
+        !* 对导数信息进行求平均，累计BP算法需要用到.
+        do layer_index=1, l_count        
+            associate (                                                   &
+                avg_dW     => this % pt_Layer( layer_index ) % avg_dW,    &               
+                avg_dTheta => this % pt_Layer( layer_index ) % avg_dTheta &
+            )
+        
+            avg_dW = 0  
+            avg_dTheta = 0
+            
+            end associate       
+        end do
+        
+        call LogDebug("NNStructure: SUBROUTINE m_set_average_gradient_zero")
+        
+        return
+    end subroutine m_set_average_gradient_zero
     !====  
     
     !* 计算所有求导变量的值
@@ -764,6 +795,8 @@ contains   !|
             allocate( this % pt_Layer( layer_index ) % dTheta(N) )
             allocate( this % pt_Layer( layer_index ) % avg_dTheta(N) )
         end do
+		
+		call this % set_average_gradient_zero()
         
         call LogDebug("NNStructure: SUBROUTINE m_allocate_memory")
     

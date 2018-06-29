@@ -5,6 +5,11 @@ use mod_BaseCalculationCase
 use mod_NNTrain
 use mod_CrossEntropy
 use mod_SimpleBatchGenerator
+use mod_OptimizationAdam
+use mod_ShuffleBatchGenerator
+use mod_OptimizationSGD
+use mod_OptimizationMomentumSGD
+use mod_OptimizationRMSProp
 implicit none    
 
 !-----------------------------
@@ -60,6 +65,10 @@ type, extends(BaseCalculationCase), public :: MoonCase
     type(CrossEntropyWithSoftmax), pointer :: cross_entropy_function
     
     type(SimpleBatchGenerator), pointer :: batch_generator
+    !type(ShuffleBatchGenerator), pointer :: batch_generator
+	
+	type(OptimizationAdam), pointer :: adam_method 
+    !type(OptimizationRMSProp), pointer :: adam_method
     
 !||||||||||||    
 contains   !|
@@ -93,7 +102,7 @@ contains   !|
     implicit none
         class(MoonCase), intent(inout) :: this
         
-        integer :: train_count = 1
+        integer :: train_count = 10
         integer :: round_step
     
         call this % allocate_memory()
@@ -109,46 +118,54 @@ contains   !|
             y_train_pre => this % y_train_pre, &
             X_test      => this % X_test,      &
             y_test      => this % y_test,      &
-            y_test_pre  => this % y_test_pre   & 
+            y_test_pre  => this % y_test_pre,  & 
+			my_NNTrain  => this % my_NNTrain   &
         )
         
         call this % normalization(X_train)
+		call this % normalization(X_test)
         
-        call this % my_NNTrain % init('MoonCase', &
+		!----------------------------------------
+        call my_NNTrain % init('MoonCase', &
             this % sample_point_X, this % sample_point_y)
         
-        call this % my_NNTrain % set_train_type('classification')
+        call my_NNTrain % set_train_type('classification')
         
-        call this % my_NNTrain % &
+        call my_NNTrain % &
             set_weight_threshold_init_methods_name('xavier')
             
-        call this % my_NNTrain % set_loss_function(this % cross_entropy_function)
+        call my_NNTrain % set_loss_function(this % cross_entropy_function)
+		
+		call this % adam_method % set_NN( my_NNTrain % my_NNStructure )
+        !call this % adam_method % set_Adam_parameter(eps=0.01)
+        !call this % adam_method % set_SGD_parameter(eps=0.001)
+		call my_NNTrain % set_optimization_method( this % adam_method )
         
-        do round_step=1, train_count
-            call this % batch_generator % get_next_batch( &
-                X_train, y_train, X_batch, y_batch )
-            
-            call this % my_NNTrain % train(X_batch, &
-                y_batch, y_batch_pre)           
-        end do
+        call my_NNTrain % set_train_msg_output_step(100)
+		!----------------------------------------
+		
         
-        !call this % my_NNTrain % init('MoonCase', X_train, y_train)
-        !
-        !call this % my_NNTrain % set_train_type('classification')
-        !
-        !call this % my_NNTrain % &
-        !    set_weight_threshold_init_methods_name('xavier')
-        !    
-        !call this % my_NNTrain % set_loss_function(this % cross_entropy_function)
-        !    
-        !call this % my_NNTrain % train(X_train, &
-        !    y_train, y_train_pre)
-        !
-        call this % normalization(X_test)
-            
-        call this % my_NNTrain % sim(X_test, &
-            y_test, y_test_pre)
+        call my_NNTrain % train(X_train, y_train, y_train_pre)
+                
+        call LogInfo("Train Set: ")
+		call my_NNTrain % sim(X_train, y_train, y_train_pre)
+		
+		call LogInfo("Test Set: ")
+		call my_NNTrain % sim(X_test, y_test, y_test_pre)
         
+   !     do round_step=1, train_count
+   !         call this % batch_generator % get_next_batch( &
+   !             X_train, y_train, X_batch, y_batch )
+   !         
+   !         call my_NNTrain % train(X_batch, y_batch, y_batch_pre)           
+			!
+			!call LogInfo("Train Set: ")
+			!call my_NNTrain % sim(X_train, y_train, y_train_pre)
+		 !
+			!call LogInfo("Test Set: ")
+			!call my_NNTrain % sim(X_test, y_test, y_test_pre)
+   !     end do
+ 
         end associate
             
         return
@@ -267,6 +284,8 @@ contains   !|
         allocate( this % cross_entropy_function )
         
         allocate( this % batch_generator )
+		
+		allocate( this % adam_method )
         
         this % is_allocate_done = .true.
         
@@ -297,6 +316,7 @@ contains   !|
         deallocate( this % my_NNTrain )
         deallocate( this % cross_entropy_function )
         deallocate( this % batch_generator )
+		deallocate( this % adam_method )
         
         this % is_allocate_done = .false.
         

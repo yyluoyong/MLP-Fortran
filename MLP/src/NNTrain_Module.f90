@@ -65,6 +65,9 @@ type, public :: NNTrain
         
     !* 训练步数
     integer, public :: train_step
+	
+	!* 训练过程中信息输出间隔步数
+	integer, public :: train_msg_output_step = 500
     
     !* 使用的BP训练算法
     character(len=20), private :: bp_algorithm
@@ -87,7 +90,7 @@ contains   !|
     procedure, public :: set_weight_threshold_init_methods_name => &
         m_set_weight_threshold_init_methods_name
 	procedure, public :: set_optimization_method => m_set_optimization_method
-    
+    procedure, public :: set_train_msg_output_step => m_set_train_msg_output_step
     
     procedure, public :: train => m_train
     procedure, public :: sim   => m_sim
@@ -117,6 +120,7 @@ end type NNTrain
     private :: m_set_weight_threshold_init_methods_name
     private :: m_set_loss_function
 	private :: m_set_optimization_method
+	private :: m_set_train_msg_output_step
     
     private :: m_init_NNParameter
     private :: m_load_NNParameter
@@ -216,11 +220,12 @@ contains   !|
         
         X_shape = SHAPE(X)        
         
+        call this % gradient_optimization_method % pre_process()
+        
         do t_step=1, this % train_step
         
             call LogDebug("NNTrain: SUBROUTINE m_train step")
-			
-			call this % gradient_optimization_method % pre_process()
+						
 			call this % gradient_optimization_method % set_iterative_step( t_step )
             
             do sample_index=1, X_shape(2)
@@ -229,27 +234,30 @@ contains   !|
                     t(:, sample_index), y(:, sample_index) )
         
                 !* 标准BP算法在此处更新网络权值和阈值
-                !if (TRIM(ADJUSTL(this % bp_algorithm)) == 'standard') then
-                !    call this % standard_BP_update()
-                !end if
+                if (TRIM(ADJUSTL(this % bp_algorithm)) == 'standard') then
+                    call this % gradient_optimization_method % &
+						update_NN(this % bp_algorithm)
+                end if
 				
-				call this % my_NNStructure % calc_avg_gradient( X_shape(2) )
+				call this % my_NNStructure % calc_average_gradient( X_shape(2) )
             end do
             
             !* 累积BP算法在此处更新网络权值和阈值 
-            !if (TRIM(ADJUSTL(this % bp_algorithm)) == 'accumulation') then
-            !        call this % accumulation_BP_update()
-            !end if
+            if (TRIM(ADJUSTL(this % bp_algorithm)) == 'accumulation') then
+				call this % gradient_optimization_method % &
+					update_NN(this % bp_algorithm)
+            end if
             
-			call this % gradient_optimization_method % update_NN()
 			call this % gradient_optimization_method % post_process()
 			
             call this % step_post_process(t_step, t, y, err, max_err, acc)
             
+			call this % my_NNStructure % set_average_gradient_zero()
+			
             if (err < this % error_avg) then
             !if (err < this % error_single) then
                 exit
-            end if
+            end if	
    
         end do
         
@@ -346,7 +354,7 @@ contains   !|
                 TRIM(ADJUSTL(acc_to_string))     
         end select
         
-        if (MOD(step, 100) == 0) then
+        if (MOD(step, this % train_msg_output_step) == 0) then
             call LogInfo(msg)
         end if
         
@@ -463,6 +471,20 @@ contains   !|
         
         return
     end subroutine m_set_optimization_method
+    !====	
+	
+	!* 设置优化方法
+    subroutine m_set_train_msg_output_step( this, msg_step )
+    implicit none
+        class(NNTrain), intent(inout) :: this
+        integer, intent(in) :: msg_step
+        
+        this % train_msg_output_step = msg_step
+        
+        call LogDebug("NNTrain: SUBROUTINE m_set_train_msg_output_step")
+        
+        return
+    end subroutine m_set_train_msg_output_step
     !====
 	
     !* 读取网络的参数

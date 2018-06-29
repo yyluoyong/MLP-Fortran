@@ -179,6 +179,7 @@ contains   !|
 		call this % adam_method % set_NN( my_NNTrain % my_NNStructure )
         !call this % adam_method % set_Adam_parameter(eps=0.01)
 		call my_NNTrain % set_optimization_method( this % adam_method )
+        call my_NNTrain % set_train_msg_output_step(100)
 		!----------------------------------------
 		
 		

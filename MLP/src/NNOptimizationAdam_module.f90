@@ -120,9 +120,10 @@ contains   !|
 !|||||||||||| 
 	
 	!* 更新神经网络的参数
-	subroutine m_update_NN( this )
+	subroutine m_update_NN( this, bp_algorithm )
 	implicit none
 		class(OptimizationAdam), intent(inout) :: this
+		character(len=*), optional, intent(in) :: bp_algorithm
 
 		integer :: layer_index, l_count 
 		
@@ -150,28 +151,52 @@ contains   !|
                 avg_dTheta => this % my_NN % pt_Layer( layer_index ) % avg_dTheta &
             )
 		
-			!* s <-- ρ_1 * s + (1 - ρ_1) * g
-			!* r <-- ρ_2 * r + (1 - ρ_2) * g ⊙ g
-            !avg_dW     = avg_dW     + 1.E-4 * W
-            !avg_dTheta = avg_dTheta + 1.E-4 * Theta
+			if (PRESENT(bp_algorithm) .and. &
+				(TRIM(ADJUSTL(bp_algorithm)) == 'standard')) then
+				!* s <-- ρ_1 * s + (1 - ρ_1) * g
+			    !* r <-- ρ_2 * r + (1 - ρ_2) * g ⊙ g
                 
-			W_S = rho_1 * W_S + (1 - rho_1) * avg_dW
-			W_R = rho_2 * W_R + (1 - rho_2) * avg_dW * avg_dW 
+			    W_S = rho_1 * W_S + (1 - rho_1) * dW
+			    W_R = rho_2 * W_R + (1 - rho_2) * dW * dW 
 			
-			Theta_S = rho_1 * Theta_S + (1 - rho_1) * avg_dTheta 
-			Theta_R = rho_2 * Theta_R + (1 - rho_2) * avg_dTheta * avg_dTheta
+			    Theta_S = rho_1 * Theta_S + (1 - rho_1) * dTheta 
+			    Theta_R = rho_2 * Theta_R + (1 - rho_2) * dTheta * dTheta
 			
-			!* △θ = -ε * s_hat / (√(r_hat) + δ)
-			!* s_hat = s / (1 - ρ^t_1), r_hat = r / (1 - ρ^t_2)
-			dW = -eps * (W_S / (1 - rho_1_t)) / (SQRT(W_R / (1 - rho_2_t)) + delta)
- 			W = W + dW
+			    !* △θ = -ε * s_hat / (√(r_hat) + δ)
+			    !* s_hat = s / (1 - ρ^t_1), r_hat = r / (1 - ρ^t_2)
+			    dW = -eps * (W_S / (1 - rho_1_t)) / (SQRT(W_R / (1 - rho_2_t)) + delta)
+ 			    W = W + dW
 			
-			dTheta = -eps * (Theta_S / (1 - rho_1_t)) / &
-				(SQRT(Theta_R / (1 - rho_2_t)) + delta)
-			Theta = Theta + dTheta
+			    dTheta = -eps * (Theta_S / (1 - rho_1_t)) / &
+				    (SQRT(Theta_R / (1 - rho_2_t)) + delta)
+			    Theta = Theta + dTheta
 			
-			avg_dW = 0
-			avg_dTheta = 0
+			else
+                !* 默认是针对一个batch更新阈值和权值
+            
+			    !* s <-- ρ_1 * s + (1 - ρ_1) * g
+			    !* r <-- ρ_2 * r + (1 - ρ_2) * g ⊙ g
+                !avg_dW     = avg_dW     + 1.E-4 * W
+                !avg_dTheta = avg_dTheta + 1.E-4 * Theta
+                
+			    W_S = rho_1 * W_S + (1 - rho_1) * avg_dW
+			    W_R = rho_2 * W_R + (1 - rho_2) * avg_dW * avg_dW 
+			
+			    Theta_S = rho_1 * Theta_S + (1 - rho_1) * avg_dTheta 
+			    Theta_R = rho_2 * Theta_R + (1 - rho_2) * avg_dTheta * avg_dTheta
+			
+			    !* △θ = -ε * s_hat / (√(r_hat) + δ)
+			    !* s_hat = s / (1 - ρ^t_1), r_hat = r / (1 - ρ^t_2)
+			    dW = -eps * (W_S / (1 - rho_1_t)) / (SQRT(W_R / (1 - rho_2_t)) + delta)
+ 			    W = W + dW
+			
+			    dTheta = -eps * (Theta_S / (1 - rho_1_t)) / &
+				    (SQRT(Theta_R / (1 - rho_2_t)) + delta)
+			    Theta = Theta + dTheta
+			
+			    avg_dW = 0
+			    avg_dTheta = 0
+			end if
 	
 			end associate
 		end do 

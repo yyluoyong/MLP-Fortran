@@ -85,9 +85,10 @@ contains   !|
 !|||||||||||| 
 	
 	!* 更新神经网络的参数
-	subroutine m_update_NN( this )
+	subroutine m_update_NN( this, bp_algorithm )
 	implicit none
 		class(OptimizationSGD), intent(inout) :: this
+		character(len=*), optional, intent(in) :: bp_algorithm
 
 		integer :: layer_index, l_count 
 		
