@@ -247,11 +247,12 @@ contains   !|
         
         X_shape = SHAPE(X)        
         
+        call this % gradient_optimization_method % pre_process()
+        
         do t_step=1, this % train_step
         
-            call LogDebug("NNTrain: SUBROUTINE m_train step")
+            call LogDebug("NNTrain: SUBROUTINE m_train step")			
 			
-			call this % gradient_optimization_method % pre_process()
 			call this % gradient_optimization_method % set_iterative_step( t_step )
             
             do sample_index=1, X_shape(2)
