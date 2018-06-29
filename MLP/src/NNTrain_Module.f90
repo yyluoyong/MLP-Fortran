@@ -216,6 +216,7 @@ contains   !|
         integer :: sample_index, t_step
         integer :: X_shape(2)
         real(PRECISION) :: err, max_err, acc
+        character(len=20) :: step_to_string
         character(len=180) :: msg
         
         X_shape = SHAPE(X)        
@@ -256,6 +257,8 @@ contains   !|
 			
             if (err < this % error_avg) then
             !if (err < this % error_single) then
+                write(UNIT=step_to_string, FMT='(I15)') t_step
+                call LogInfo("---> step_end = " // TRIM(ADJUSTL(step_to_string)))
                 exit
             end if	
    
