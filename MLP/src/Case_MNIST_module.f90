@@ -7,6 +7,7 @@ use mod_CrossEntropy
 use mod_SimpleBatchGenerator
 use mod_ShuffleBatchGenerator
 use mod_OptimizationAdam
+use mod_OptimizationRMSProp
 implicit none    
 
 !------------------------------
@@ -82,10 +83,11 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     
     type(CrossEntropyWithSoftmax), pointer :: cross_entropy_function
 	
-	type(SimpleBatchGenerator), pointer :: batch_generator
-    !type(ShuffleBatchGenerator), pointer :: batch_generator
+	!type(SimpleBatchGenerator), pointer :: batch_generator
+    type(ShuffleBatchGenerator), pointer :: batch_generator
 	
 	type(OptimizationAdam), pointer :: adam_method
+    !type(OptimizationRMSProp), pointer :: adam_method
     
 !||||||||||||    
 contains   !|
@@ -119,7 +121,7 @@ contains   !|
     implicit none
         class(MNISTCase), intent(inout) :: this
 		
-		integer :: train_count = 10000
+		integer :: train_count = 100000
         integer :: round_step
         character(len=20) :: round_step_to_str
 		integer :: train_sub_count
@@ -173,7 +175,7 @@ contains   !|
 		call my_NNTrain % init('MNISTCase', sample_point_X, sample_point_y)
         
         call my_NNTrain % set_train_type('classification')        
-        !call my_NNTrain % set_weight_threshold_init_methods_name('xavier')            
+        call my_NNTrain % set_weight_threshold_init_methods_name('xavier')            
         call my_NNTrain % set_loss_function(this % cross_entropy_function)
 		
 		call this % adam_method % set_NN( my_NNTrain % my_NNStructure )
@@ -194,7 +196,8 @@ contains   !|
             call my_NNTrain % train(X_batch, y_batch, y_batch_pre)    
             
             write(UNIT=round_step_to_str, FMT='(I15)') round_step
-            call LogInfo("round_step = " // TRIM(ADJUSTL(round_step_to_str)))
+            call LogInfo("<-- round_step = " // &
+                TRIM(ADJUSTL(round_step_to_str)) // " -->")
             
             if (MOD(round_step, 1) == 0) then
 			    call LogInfo("Validation Set: ")

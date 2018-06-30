@@ -258,7 +258,7 @@ contains   !|
             if (err < this % error_avg) then
             !if (err < this % error_single) then
                 write(UNIT=step_to_string, FMT='(I15)') t_step
-                call LogInfo("---> step_end = " // TRIM(ADJUSTL(step_to_string)))
+                call LogInfo("--> step_end = " // TRIM(ADJUSTL(step_to_string)))
                 exit
             end if	
    
