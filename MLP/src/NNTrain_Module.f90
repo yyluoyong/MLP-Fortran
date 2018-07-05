@@ -7,8 +7,6 @@ use mod_BaseActivationFunction
 use mod_NNStructure
 use mod_Log
 use mod_BaseGradientOptimizationMethod
-use mod_NNTools
-use mod_Tools
 implicit none    
 
 !-----------------------------------

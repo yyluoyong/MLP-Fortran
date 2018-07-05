@@ -40,54 +40,58 @@ type, extends(BaseCalculationCase), public :: MNISTCase
 	integer, public :: count_validation = 5000
     
     !* 测试集样本数量，最大是10000
-    integer, public :: count_test = 5000
+    integer, public :: count_test = 10000
     
     !* 单个样本的数据量: 28 ×28 = 784
     integer, public :: sample_point_X = 784
     integer, public :: sample_point_y = 10
 	
 	!* 训练数据，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: X_batch
+    real(PRECISION), dimension(:,:), allocatable, public :: X_batch
     !* 训练数据对应的目标值，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_batch
+    real(PRECISION), dimension(:,:), allocatable, public :: y_batch
     !* 训练数据的预测结果
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_batch_pre
+    real(PRECISION), dimension(:,:), allocatable, public :: y_batch_pre
     
 	!* 训练数据，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: X_train_origin
+    real(PRECISION), dimension(:,:), allocatable, public :: X_train_origin
     !* 训练数据对应的目标值，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train_origin
+    real(PRECISION), dimension(:,:), allocatable, public :: y_train_origin
 	
     !* 训练数据，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: X_train
+    real(PRECISION), dimension(:,:), allocatable, public :: X_train
     !* 训练数据对应的目标值，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train
+    real(PRECISION), dimension(:,:), allocatable, public :: y_train
     !* 训练数据的预测结果
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_train_pre
+    real(PRECISION), dimension(:,:), allocatable, public :: y_train_pre
     
 	!* 验证数据，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: X_validate
+    real(PRECISION), dimension(:,:), allocatable, public :: X_validate
     !* 验证数据对应的目标值，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_validate
+    real(PRECISION), dimension(:,:), allocatable, public :: y_validate
     !* 验证数据的预测结果
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_validate_pre
+    real(PRECISION), dimension(:,:), allocatable, public :: y_validate_pre
 	
     !* 测试数据，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: X_test
+    real(PRECISION), dimension(:,:), allocatable, public :: X_test
     !* 测试数据对应的目标值，每一列是一组
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_test
+    real(PRECISION), dimension(:,:), allocatable, public :: y_test
     !* 测试数据的预测结果
-    real(kind=PRECISION), dimension(:,:), allocatable, public :: y_test_pre
+    real(PRECISION), dimension(:,:), allocatable, public :: y_test_pre
+	
+	!* 记录在验证集和测试集的准确率
+	real(PRECISION), dimension(:,:), allocatable, public :: acc_validate
+	real(PRECISION), dimension(:,:), allocatable, public :: acc_test
     
     type(NNTrain), pointer :: my_NNTrain
     
-    type(CrossEntropyWithSoftmax), pointer :: cross_entropy_function
+    type(CrossEntropyWithSoftmax), pointer, private :: cross_entropy_function
 	
-	!type(SimpleBatchGenerator), pointer :: batch_generator
-    type(ShuffleBatchGenerator), pointer :: batch_generator
+	type(SimpleBatchGenerator), pointer :: batch_generator
+    !type(ShuffleBatchGenerator), pointer, private :: batch_generator
 	
-	type(OptimizationAdam), pointer :: adam_method
-    !type(OptimizationRMSProp), pointer :: adam_method
+	type(OptimizationAdam), pointer, private :: opt_method
+    !type(OptimizationRMSProp), pointer :: opt_method
     
 !||||||||||||    
 contains   !|
@@ -95,6 +99,9 @@ contains   !|
 
     procedure, public :: main => m_main
 
+	procedure, private :: pre_process  => m_pre_process
+	procedure, private :: post_process => m_post_process
+	
     procedure, private :: load_MNIST_data => m_load_MNIST_data
     procedure, private :: read_MNIST_data_from_file => m_read_MNIST_data_from_file
     procedure, private :: allocate_memory   => m_allocate_memory
@@ -106,6 +113,9 @@ end type MNISTCase
 
     !-------------------------
     private :: m_main
+	private :: m_pre_process
+	private :: m_post_process 
+	private :: m_output_train_msg
     private :: m_load_MNIST_data
     private :: m_read_MNIST_data_from_file
     private :: m_allocate_memory
@@ -118,13 +128,91 @@ contains   !|
 
     !* 主函数
     subroutine m_main( this )
+	use mod_NNTools
     implicit none
         class(MNISTCase), intent(inout) :: this
 		
-		integer :: train_count = 100000
-        integer :: round_step
+		integer :: train_count = 10000
+        integer :: round_step, acc_round_counter = 0
         character(len=20) :: round_step_to_str
 		integer :: train_sub_count
+		real(PRECISION) :: acc, err, max_err
+    
+        call this % pre_process()	
+
+		associate (                                          &
+            X_batch            => this % X_batch,            &
+            y_batch            => this % y_batch,            &
+            y_batch_pre        => this % y_batch_pre,        &
+            X_train            => this % X_train,            &
+            y_train            => this % y_train,            &
+            y_train_pre        => this % y_train_pre,        &
+			X_validate         => this % X_validate,         &
+            y_validate         => this % y_validate,         &
+            y_validate_pre     => this % y_validate_pre,     &
+            X_test             => this % X_test,             &
+            y_test             => this % y_test,             &
+            y_test_pre         => this % y_test_pre,         & 
+			my_NNTrain         => this % my_NNTrain,         &
+			batch_generator    => this % batch_generator     &
+        )   		
+		
+		allocate( this % acc_validate(2, train_count) )
+		allocate( this % acc_test(2, train_count) )
+		
+		this % acc_validate = -1
+		this % acc_test     = -1
+		
+		do round_step=1, train_count     
+            
+            call batch_generator % get_next_batch( &
+                X_train, y_train, X_batch, y_batch )          
+                
+            call my_NNTrain % train(X_batch, y_batch, y_batch_pre)
+
+			call calc_cross_entropy_error( y_batch, y_batch_pre, err, max_err )
+			call calc_classify_accuracy( y_batch, y_batch_pre, acc )
+            call m_output_train_msg('', round_step, err, max_err, acc )
+			
+            if (MOD(round_step, 10) == 1) then
+				acc_round_counter = acc_round_counter + 1
+			
+                call my_NNTrain % sim(X_validate, y_validate, y_validate_pre)
+			    call my_NNTrain % sim(X_test, y_test, y_test_pre)
+				
+				call calc_cross_entropy_error( y_validate, y_validate_pre, err, max_err )
+				call calc_classify_accuracy( y_validate, y_validate_pre, acc )
+				call m_output_train_msg('** Validate Set **', &
+					round_step, err, max_err, acc )				
+				
+				this % acc_validate(1, acc_round_counter) = round_step
+				this % acc_validate(2, acc_round_counter) = acc
+				
+				call calc_cross_entropy_error( y_test, y_test_pre, err, max_err )
+				call calc_classify_accuracy( y_test, y_test_pre, acc )
+				call m_output_train_msg('** Test Set **', &
+					round_step, err, max_err, acc )	
+				
+				this % acc_test(1, acc_round_counter) = round_step
+				this % acc_test(2, acc_round_counter) = acc
+            end if
+
+        end do
+        
+		call this % post_process()
+            
+        end associate
+            
+        return
+    end subroutine m_main
+    !====
+    
+	!* 前处理
+	subroutine m_pre_process( this )
+    implicit none
+        class(MNISTCase), intent(inout) :: this
+        
+        integer :: train_sub_count
     
         call Log_set_file_name_prefix("MNIST")
 
@@ -146,20 +234,22 @@ contains   !|
             y_validate_pre     => this % y_validate_pre,     &
             X_test             => this % X_test,             &
             y_test             => this % y_test,             &
-            y_test_pre         => this % y_test_pre,         & 
-			my_NNTrain         => this % my_NNTrain,         &
+            y_test_pre         => this % y_test_pre,         & 			
 			count_train        => this % count_train,        &
 			count_train_origin => this % count_train_origin, &
             count_test         => this % count_test,         &
 			count_validate     => this % count_validation,   &
 			batch_size         => this % batch_size,         &	
             sample_point_X     => this % sample_point_X,     &
-            sample_point_y     => this % sample_point_y      &
+            sample_point_y     => this % sample_point_y,     &
+			my_NNTrain         => this % my_NNTrain,         &
+			opt_method         => this % opt_method,         &
+			batch_generator    => this % batch_generator     &
         )   
         
         !----------------------------------------
-        X_train_origin = X_train_origin / 128.0 - 1.0
-		X_test         = X_test  / 128.0 - 1.0	
+        X_train_origin = 2.0 * (X_train_origin / 255.0) - 1.0
+		X_test         = 2.0 * (X_test  / 255.0) - 1.0	
             
 		X_train = X_train_origin(:, 1:count_train)
 		y_train = y_train_origin(:, 1:count_train)
@@ -172,62 +262,84 @@ contains   !|
 		
 		
 		!----------------------------------------
-		call my_NNTrain % init('MNISTCase', sample_point_X, sample_point_y)
-        
-        call my_NNTrain % set_train_type('classification')        
+		call my_NNTrain % init('MNISTCase', sample_point_X, sample_point_y)               
         call my_NNTrain % set_weight_threshold_init_methods_name('xavier')            
         call my_NNTrain % set_loss_function(this % cross_entropy_function)
 		
-		call this % adam_method % set_NN( my_NNTrain % my_NNStructure )
-        !call this % adam_method % set_Adam_parameter(eps=0.01)
-		call my_NNTrain % set_optimization_method( this % adam_method )
-        call my_NNTrain % set_train_msg_output_step(100)
+		call opt_method % set_NN( my_NNTrain % my_NNStructure )
+        !call opt_method % set_Adam_parameter(eps=0.01)
+		call my_NNTrain % set_optimization_method( opt_method )
 		!----------------------------------------
 		
-		
-		do round_step=1, train_count     
-            
-            call this % batch_generator % get_next_batch( &
-                X_train, y_train, X_batch, y_batch )
-            
-            call LogInfo("Batch Set: ")
-            call this % my_NNTrain % sim(X_batch, y_batch, y_batch_pre)
-                
-            call my_NNTrain % train(X_batch, y_batch, y_batch_pre)    
-            
-            write(UNIT=round_step_to_str, FMT='(I15)') round_step
-            call LogInfo("<-- round_step = " // &
-                TRIM(ADJUSTL(round_step_to_str)) // " -->")
-            
-            if (MOD(round_step, 1) == 0) then
-			    call LogInfo("Validation Set: ")
-                call my_NNTrain % sim(X_validate, y_validate, y_validate_pre)
-			
-			    call LogInfo("Test Set: ")
-			    call my_NNTrain % sim(X_test, y_test, y_test_pre)
-            end if
-
-        end do
+		end associate
         
-        !call this % my_NNTrain % train(X_train, &
-        !    y_train, y_train_pre)
-        !
-        !call this % my_NNTrain % sim(X_train, &
-        !    y_train, y_train_pre)
-        !
-        !call this % my_NNTrain % train(X_train, &
-        !    y_train, y_train_pre)
-        !
-        !call this % my_NNTrain % sim(X_test, &
-        !    y_test, y_test_pre)
-        
-            
-        end associate
-            
         return
-    end subroutine m_main
-    !====
+    end subroutine m_pre_process	
+	!====
+	
+	!* 前处理
+	subroutine m_post_process( this )
+	use mod_Tools
+    implicit none
+        class(MNISTCase), intent(inout) :: this
     
+		integer :: data_count
+		integer :: acc_shape(2)
+		
+		associate (                             &
+           acc_validate => this % acc_validate, &
+		   acc_test     => this % acc_test      &
+        )   
+		
+		acc_shape = SHAPE(acc_validate)
+		
+		do data_count=1, acc_shape(2)
+			if (acc_validate(1, data_count) < 0)  exit
+		end do
+		
+		call output_tecplot_line('Output/MNISTCase/acc_validate&test.plt', &
+			'step', acc_validate(1,1:data_count), &
+            'acc_validate', acc_validate(2,1:data_count), &
+			'acc_test', acc_test(2,1:data_count))
+		
+		end associate
+		
+		
+        return
+    end subroutine m_post_process	
+	!====
+	
+	!* 将迭代信息输出到文件
+	subroutine m_output_train_msg( title, step, err, max_err, acc )
+	implicit none
+		character(len=*), intent(in) :: title
+		integer, intent(in) :: step
+		real(PRECISION), intent(in) :: err, max_err, acc
+		
+		character(len=200) :: msg
+		character(len=20) :: step_to_string, err_to_string, &
+			max_err_to_string, acc_to_string
+		
+		if (TRIM(ADJUSTL(title)) /= '') then
+			call LogInfo(TRIM(ADJUSTL(title)))
+		end if
+		
+		write(UNIT=step_to_string,    FMT='(I15)'   ) step  
+        write(UNIT=err_to_string,     FMT='(ES16.5)') err
+        write(UNIT=max_err_to_string, FMT='(ES16.5)') max_err
+		write(UNIT=acc_to_string,     FMT='(F8.5)'  ) acc		
+        
+        msg = "step = "    // TRIM(ADJUSTL(step_to_string))    // &
+            ", err = "     // TRIM(ADJUSTL(err_to_string))     // &
+            ", max_err = " // TRIM(ADJUSTL(max_err_to_string)) // &
+			", acc = "     // TRIM(ADJUSTL(acc_to_string))
+	
+		call LogInfo(msg)
+	
+		return
+	end subroutine
+	!====
+	
     !* 读取MNIST数据
     subroutine m_load_MNIST_data( this )
     implicit none
@@ -366,7 +478,7 @@ contains   !|
 		
 		allocate( this % batch_generator )
 		
-		allocate( this % adam_method )
+		allocate( this % opt_method )
         
         this % is_allocate_done = .true.
         
@@ -404,7 +516,7 @@ contains   !|
         deallocate( this % my_NNTrain )
         deallocate( this % cross_entropy_function )
 		deallocate( this % batch_generator )		
-		deallocate( this % adam_method )
+		deallocate( this % opt_method )
         
         this % is_allocate_done = .false.
         

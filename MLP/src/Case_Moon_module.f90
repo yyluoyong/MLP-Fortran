@@ -129,7 +129,7 @@ contains   !|
         call my_NNTrain % init('MoonCase', &
             this % sample_point_X, this % sample_point_y)
         
-        call my_NNTrain % set_train_type('classification')
+        !call my_NNTrain % set_train_type('classification')
         
         call my_NNTrain % &
             set_weight_threshold_init_methods_name('xavier')
@@ -141,7 +141,7 @@ contains   !|
         !call this % adam_method % set_SGD_parameter(eps=0.001)
 		call my_NNTrain % set_optimization_method( this % adam_method )
         
-        call my_NNTrain % set_train_msg_output_step(100)
+        !call my_NNTrain % set_train_msg_output_step(100)
 		!----------------------------------------
 		
         
