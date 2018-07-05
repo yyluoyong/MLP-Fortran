@@ -32,10 +32,10 @@ type, public :: NNTrain
     !* 调用者标识，可用于读取指定的配置信息等。
     character(len=180), private :: caller_name = ''
 
-    ! 是否初始化完成的标识
+    !* 是否初始化完成的标识
     logical, private :: is_init = .false.
         
-    ! 是否初始化内存空间
+    !* 是否初始化内存空间
     logical, private :: is_allocate_done = .false.
     
     character(len=180), private :: NNParameter_path = &
@@ -76,6 +76,7 @@ contains   !|
     procedure, public :: set_weight_threshold_init_methods_name => &
         m_set_weight_threshold_init_methods_name
 	procedure, public :: set_optimization_method => m_set_optimization_method
+	procedure, public :: set_train_step_counter  => m_set_train_step_counter
     
     procedure, public :: train => m_train
     procedure, public :: sim   => m_sim
@@ -102,6 +103,7 @@ end type NNTrain
     private :: m_set_weight_threshold_init_methods_name
     private :: m_set_loss_function
 	private :: m_set_optimization_method
+	private :: m_set_train_step_counter
 	
     private :: m_init_NNParameter
     private :: m_load_NNParameter
@@ -362,6 +364,24 @@ contains   !|
         
         return
     end subroutine m_set_optimization_method
+    !====	
+		
+	!* 重置训练步数计数器
+    subroutine m_set_train_step_counter( this, step )
+    implicit none
+        class(NNTrain), intent(inout) :: this
+        integer, optional, intent(in) :: step
+        
+        if (PRESENT(step)) then
+			this % train_step_counter = step
+		else
+			this % train_step_counter = 0
+		end if
+        
+        call LogDebug("NNTrain: SUBROUTINE m_set_train_step_counter")
+        
+        return
+    end subroutine m_set_train_step_counter
     !====	
 	
     !* 读取网络的参数
