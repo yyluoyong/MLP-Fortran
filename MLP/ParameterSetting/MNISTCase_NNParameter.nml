@@ -2,20 +2,12 @@
 !* HIDDEN_LAYERS_COUNT: 隐藏层的数目.                                      *!
 !* 		当修改该参数之后，还需要相应修改：                                 *!
 !*		（1）NNHiddenLayerNodeCount.parameter 文件，设置各隐藏层结点数量.  *!
-!*		（2）NNLearningRate.parameter 文件，设置各层权值、阈值学习速率.    *!
-!*		（3）NNActivationFunctionList.parameter 文件，设置各层的激活函数.  *!
-!* TRAIN_STEP:	训练总步数											       *!
-!* ERROR_SINGLE: 单个样本误差阈值									       *!
-!*		注：此参数暂时还未在程序使用.                                      *!
-!* ERROR_AVG: 所有样本误差阈值，小于此结束训练                             *!
+!*		（2）NNActivationFunctionList.parameter 文件，设置各层的激活函数.  *!
 !* BP_ALGORITHM:                                                           *!
 !*		standard      =>  标准BP算法                                       *!
 !*		accumulation  =>  累积BP算法                                       *!
 !---------------------------------------------------------------------------!
 &NNParameter_NameList
 HIDDEN_LAYERS_COUNT = 1
-TRAIN_STEP          = 10000
-ERROR_SINGLE        = 0.001
-ERROR_AVG           = 0.001
 BP_ALGORITHM        = 'accumulation'
 /
