@@ -510,13 +510,13 @@ contains   !|
 			)			
 			
 			!* dW^{k}_{ij} = z^{k-1}_j * E_i * d_Matrix_part
-			do i=1, N 
-				do j=1, M
+			do j=1, M
+				do i=1, N 				
 					dW(i, j) = Z_pre(j) * matrix_part(i)
 				end do
             end do
             
-            dW = dW + 1.E-4 * W
+            !dW = dW + 1.E-4 * W
 
 			end associate
 			
@@ -545,7 +545,7 @@ contains   !|
             end do
         end do
         
-        dW = dW + 1.E-4 * W
+        !dW = dW + 1.E-4 * W
         
         end associate
 		!---------------------------------
@@ -583,7 +583,7 @@ contains   !|
 				dTheta(i) = -matrix_part(i)
             end do
 		
-            dTheta = dTheta + 1.E-4 * Theta
+            !dTheta = dTheta + 1.E-4 * Theta
             
 			end associate
 			
@@ -609,7 +609,7 @@ contains   !|
             dTheta(i) = -df_to_dr * matrix_part(i)
         end do
         
-        dTheta = dTheta + 1.E-4 * Theta
+        !dTheta = dTheta + 1.E-4 * Theta
         
         end associate
 		!---------------------------------
@@ -729,8 +729,9 @@ contains   !|
                 Theta => this % pt_Theta(layer_index) % Theta  &
             )
                 
-            call RANDOM_NUMBER(Theta) 
-            Theta = 2.0 * Theta - 1.0
+            !call RANDOM_NUMBER(Theta) 
+            !Theta = 2.0 * Theta - 1.0
+            Theta = 0.0
             
             end associate
         end do

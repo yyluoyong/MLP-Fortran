@@ -39,7 +39,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
 	integer, public :: count_validation = 5000
     
     !* 测试集样本数量，最大是10000
-    integer, public :: count_test = 5000
+    integer, public :: count_test = 10000
     
     !* 单个样本的数据量: 28 ×28 = 784
     integer, public :: sample_point_X = 784
@@ -123,6 +123,7 @@ contains   !|
         integer :: round_step
         character(len=20) :: round_step_to_str
 		integer :: train_sub_count
+        integer :: i, j
     
         call Log_set_file_name_prefix("MNIST")
 
@@ -156,8 +157,24 @@ contains   !|
         )   
         
         !----------------------------------------
-        X_train_origin = X_train_origin / 128.0 - 1.0
-		X_test         = X_test  / 128.0 - 1.0	
+        X_train_origin = 2.0 * ( X_train_origin / 255.0 ) - 1.0
+		X_test         = 2.0 * ( X_test  / 255.0 ) - 1.0	
+        
+        !do j=1, count_train_origin
+        !    do i=1, sample_point_X
+        !        if (X_train_origin(i,j) > 0) then
+        !            X_train_origin(i,j) = 1
+        !        end if
+        !    end do
+        !end do
+        !
+        !do j=1, count_test
+        !    do i=1, sample_point_X
+        !        if (X_test(i,j) > 0) then
+        !            X_test(i,j) = 1
+        !        end if
+        !    end do
+        !end do
             
 		X_train = X_train_origin(:, 1:count_train)
 		y_train = y_train_origin(:, 1:count_train)
@@ -194,9 +211,11 @@ contains   !|
             call my_NNTrain % train(X_batch, y_batch, y_batch_pre)    
             
             write(UNIT=round_step_to_str, FMT='(I15)') round_step
-            call LogInfo("round_step = " // TRIM(ADJUSTL(round_step_to_str)))
+            call LogInfo("<-- round_step = " // &
+                TRIM(ADJUSTL(round_step_to_str)) // &
+                " -->")
             
-            if (MOD(round_step, 1) == 0) then
+            if (MOD(round_step, 100) == 0) then
 			    call LogInfo("Validation Set: ")
                 call my_NNTrain % sim(X_validate, y_validate, y_validate_pre)
 			
