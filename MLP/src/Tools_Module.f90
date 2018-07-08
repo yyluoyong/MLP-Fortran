@@ -67,7 +67,8 @@ implicit none
                 TRIM(ADJUSTL(var_9_name)) // '"'
         end if
         
-        open(unit=33, file=file_name, form='formatted', status='replace')
+        open(unit=33, file=TRIM(ADJUSTL(file_name)), &
+            form='formatted', status='replace')
         
         write(33, *) 'title="By SUBROUTINE output_tecplot_line"'    
         write(33, *) TRIM(ADJUSTL(var_name_list))
@@ -166,7 +167,8 @@ implicit none
             TRIM(ADJUSTL(i_count_to_string)) // ', j = ' // &
             TRIM(ADJUSTL(j_count_to_string))
         
-        open(unit=33, file=file_name, form='formatted', status='replace')
+        open(unit=33, file=TRIM(ADJUSTL(file_name)), &
+            form='formatted', status='replace')
         
         write(33, *) 'title="By SUBROUTINE output_tecplot_line"'    
         write(33, *) TRIM(ADJUSTL(var_name_list))

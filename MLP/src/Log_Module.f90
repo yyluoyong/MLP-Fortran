@@ -24,9 +24,14 @@ implicit none
 	
 	
 	!-----------------------------
+    public :: Log_set_file_name_prefix
+    public :: LogDebug
+    public :: LogErr
+    public :: LogInfo
+    public :: get_date_string
+    
 	private :: m_generate_file_name
     private :: m_output_string
-	private :: m_get_date_str
 	!-----------------------------
 
 !||||||||||||    
@@ -97,7 +102,7 @@ contains   !|
 		
 		if( is_file_name_generation )  return
 		
-		call m_get_date_str( date_str )
+		call get_date_string( date_str )
 
 		if (TRIM(ADJUSTL(file_name_prefix)) == '') then
 			error_file_name = TRIM(ADJUSTL(log_path))
@@ -159,7 +164,7 @@ contains   !|
 
 	!* 将系统日期时间转换成字符串，
 	!* 如: 2018.06.27-12:00，到分钟
-	subroutine m_get_date_str( date_str )
+	subroutine get_date_string( date_str )
     implicit none
         character(len=*), intent(out) :: date_str
 
@@ -175,7 +180,7 @@ contains   !|
 				   HHmmSS_SSS(3:4)
 		
         return
-    end subroutine m_get_date_str
+    end subroutine get_date_string
     !====
 
 end module mod_Log

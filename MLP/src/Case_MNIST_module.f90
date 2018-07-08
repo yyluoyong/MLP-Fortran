@@ -29,7 +29,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     logical, private :: is_allocate_done = .false.
 	
 	!* 每组样本的数量
-    integer, public :: batch_size = 100
+    integer, public :: batch_size = 50
     
     !* 原始数据训练集样本数量，最大是60000
 	integer, public :: count_train_origin = 60000
@@ -80,6 +80,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     real(PRECISION), dimension(:,:), allocatable, public :: y_test_pre
 	
 	!* 记录在验证集和测试集的准确率
+    real(PRECISION), dimension(:,:), allocatable, public :: acc_train
 	real(PRECISION), dimension(:,:), allocatable, public :: acc_validate
 	real(PRECISION), dimension(:,:), allocatable, public :: acc_test
     
@@ -132,7 +133,7 @@ contains   !|
     implicit none
         class(MNISTCase), intent(inout) :: this
 		
-		integer :: train_count = 10000
+		integer :: train_count = 50000
         integer :: round_step, acc_round_counter = 0
         character(len=20) :: round_step_to_str
 		integer :: train_sub_count
@@ -159,6 +160,7 @@ contains   !|
 		
 		allocate( this % acc_validate(2, train_count) )
 		allocate( this % acc_test(2, train_count) )
+        allocate( this % acc_train(2, train_count) )
 		
 		this % acc_validate = -1
 		this % acc_test     = -1
@@ -174,12 +176,21 @@ contains   !|
 			call calc_classify_accuracy( y_batch, y_batch_pre, acc )
             call m_output_train_msg('', round_step, err, max_err, acc )
 			
-            if (MOD(round_step, 10) == 1) then
+            if ((MOD(round_step, 500) == 1) .or. (round_step == train_count)) then
 				acc_round_counter = acc_round_counter + 1
 			
+                call my_NNTrain % sim(X_train, y_train, y_train_pre)
                 call my_NNTrain % sim(X_validate, y_validate, y_validate_pre)
-			    call my_NNTrain % sim(X_test, y_test, y_test_pre)
-				
+			    call my_NNTrain % sim(X_test, y_test, y_test_pre)				
+                
+                call calc_cross_entropy_error( y_train, y_train_pre, err, max_err )
+				call calc_classify_accuracy( y_train, y_train_pre, acc )
+				call m_output_train_msg('** Train Set **', &
+					round_step, err, max_err, acc )	
+                
+                this % acc_train(1, acc_round_counter) = round_step
+				this % acc_train(2, acc_round_counter) = acc
+                
 				call calc_cross_entropy_error( y_validate, y_validate_pre, err, max_err )
 				call calc_classify_accuracy( y_validate, y_validate_pre, acc )
 				call m_output_train_msg('** Validate Set **', &
@@ -285,10 +296,19 @@ contains   !|
     
 		integer :: data_count
 		integer :: acc_shape(2)
+        
+        character(len=100) :: file_name, date_str
 		
-		associate (                             &
-           acc_validate => this % acc_validate, &
-		   acc_test     => this % acc_test      &
+        call get_date_string(date_str)
+        
+        file_name = 'Output/MNISTCase/' // &
+            TRIM(ADJUSTL(date_str))     // &
+            '_acc_train&validate&test.plt'
+        
+		associate (                              &
+            acc_train    => this % acc_train,    &
+            acc_validate => this % acc_validate, &
+		    acc_test     => this % acc_test      &
         )   
 		
 		acc_shape = SHAPE(acc_validate)
@@ -297,10 +317,11 @@ contains   !|
 			if (acc_validate(1, data_count) < 0)  exit
 		end do
 		
-		call output_tecplot_line('Output/MNISTCase/acc_validate&test.plt', &
-			'step', acc_validate(1,1:data_count), &
-            'acc_validate', acc_validate(2,1:data_count), &
-			'acc_test', acc_test(2,1:data_count))
+		call output_tecplot_line( file_name,                &
+			'step', acc_validate(1,1:data_count-1),         &
+            'acc_train', acc_train(2,1:data_count-1),       &
+            'acc_validate', acc_validate(2,1:data_count-1), &
+			'acc_test', acc_test(2,1:data_count-1))
 		
 		end associate
 		
