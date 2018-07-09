@@ -29,7 +29,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     logical, private :: is_allocate_done = .false.
 	
 	!* 每组样本的数量
-    integer, public :: batch_size = 100
+    integer, public :: batch_size = 1000
     
     !* 原始数据训练集样本数量，最大是60000
 	integer, public :: count_train_origin = 60000
@@ -165,58 +165,69 @@ contains   !|
 		this % acc_validate = -1
 		this % acc_test     = -1
 		
-		do round_step=1, train_count     
-            
-            call batch_generator % get_next_batch( &
-                X_train, y_train, X_batch, y_batch )          
-                
+        call batch_generator % get_next_batch( &
+                X_train, y_train, X_batch, y_batch )      
+        
+        do round_step=1, train_count 
             call my_NNTrain % train(X_batch, y_batch, y_batch_pre)
-
+  
 			call calc_cross_entropy_error( y_batch, y_batch_pre, err, max_err )
 			call calc_classify_accuracy( y_batch, y_batch_pre, acc )
-            call m_output_train_msg('', round_step, err, max_err, acc )
-			
-            if ((MOD(round_step, 500) == 1) .or. (round_step == train_count)) then
-				acc_round_counter = acc_round_counter + 1
-			
-                call my_NNTrain % sim(X_train, y_train, y_train_pre)
-                call my_NNTrain % sim(X_validate, y_validate, y_validate_pre)
-			    call my_NNTrain % sim(X_test, y_test, y_test_pre)				
-                
-                call calc_cross_entropy_error( y_train, y_train_pre, err, max_err )
-				call calc_classify_accuracy( y_train, y_train_pre, acc )
-				call m_output_train_msg('** Train Set **', &
-					round_step, err, max_err, acc )	
-                
-                this % acc_train(1, acc_round_counter) = round_step
-				this % acc_train(2, acc_round_counter) = acc
-				this % acc_train(3, acc_round_counter) = err
-				this % acc_train(4, acc_round_counter) = max_err
-                
-				call calc_cross_entropy_error( y_validate, y_validate_pre, err, max_err )
-				call calc_classify_accuracy( y_validate, y_validate_pre, acc )
-				call m_output_train_msg('** Validate Set **', &
-					round_step, err, max_err, acc )				
-				
-				this % acc_validate(1, acc_round_counter) = round_step
-				this % acc_validate(2, acc_round_counter) = acc
-				this % acc_validate(3, acc_round_counter) = err
-				this % acc_validate(4, acc_round_counter) = max_err
-				
-				call calc_cross_entropy_error( y_test, y_test_pre, err, max_err )
-				call calc_classify_accuracy( y_test, y_test_pre, acc )
-				call m_output_train_msg('** Test Set **', &
-					round_step, err, max_err, acc )	
-				
-				this % acc_test(1, acc_round_counter) = round_step
-				this % acc_test(2, acc_round_counter) = acc
-				this % acc_test(3, acc_round_counter) = err
-				this % acc_test(4, acc_round_counter) = max_err
-            end if
-
+            call m_output_train_msg('', round_step, err, max_err, acc )                
         end do
         
-		call this % post_process()
+		!do round_step=1, train_count     
+  !          
+  !          call batch_generator % get_next_batch( &
+  !              X_train, y_train, X_batch, y_batch )          
+  !              
+  !          call my_NNTrain % train(X_batch, y_batch, y_batch_pre)
+  !
+		!	call calc_cross_entropy_error( y_batch, y_batch_pre, err, max_err )
+		!	call calc_classify_accuracy( y_batch, y_batch_pre, acc )
+  !          call m_output_train_msg('', round_step, err, max_err, acc )
+		!	
+  !          if ((MOD(round_step, 500) == 1) .or. (round_step == train_count)) then
+		!		acc_round_counter = acc_round_counter + 1
+		!	
+  !              call my_NNTrain % sim(X_train, y_train, y_train_pre)
+  !              call my_NNTrain % sim(X_validate, y_validate, y_validate_pre)
+		!	    call my_NNTrain % sim(X_test, y_test, y_test_pre)				
+  !              
+  !              call calc_cross_entropy_error( y_train, y_train_pre, err, max_err )
+		!		call calc_classify_accuracy( y_train, y_train_pre, acc )
+		!		call m_output_train_msg('** Train Set **', &
+		!			round_step, err, max_err, acc )	
+  !              
+  !              this % acc_train(1, acc_round_counter) = round_step
+		!		this % acc_train(2, acc_round_counter) = acc
+		!		this % acc_train(3, acc_round_counter) = err
+		!		this % acc_train(4, acc_round_counter) = max_err
+  !              
+		!		call calc_cross_entropy_error( y_validate, y_validate_pre, err, max_err )
+		!		call calc_classify_accuracy( y_validate, y_validate_pre, acc )
+		!		call m_output_train_msg('** Validate Set **', &
+		!			round_step, err, max_err, acc )				
+		!		
+		!		this % acc_validate(1, acc_round_counter) = round_step
+		!		this % acc_validate(2, acc_round_counter) = acc
+		!		this % acc_validate(3, acc_round_counter) = err
+		!		this % acc_validate(4, acc_round_counter) = max_err
+		!		
+		!		call calc_cross_entropy_error( y_test, y_test_pre, err, max_err )
+		!		call calc_classify_accuracy( y_test, y_test_pre, acc )
+		!		call m_output_train_msg('** Test Set **', &
+		!			round_step, err, max_err, acc )	
+		!		
+		!		this % acc_test(1, acc_round_counter) = round_step
+		!		this % acc_test(2, acc_round_counter) = acc
+		!		this % acc_test(3, acc_round_counter) = err
+		!		this % acc_test(4, acc_round_counter) = max_err
+  !          end if
+  !
+  !      end do
+  !      
+		!call this % post_process()
             
         end associate
             
