@@ -61,7 +61,7 @@
 		<File RelativePath=".\src\NNActivationFunctionList_Module.f90"/>
 		<File RelativePath=".\src\NNActivationFunctionPReLU_Module.f90"/>
 		<File RelativePath=".\src\NNActivationFunctionReLU_Module.f90"/>
-		<File RelativePath=".\src\NNActivationFunctionSigmod_Module.f90"/>
+		<File RelativePath=".\src\NNActivationFunctionSigmoid_Module.f90"/>
 		<File RelativePath=".\src\NNActivationFunctionSoftmax_Module.f90"/>
 		<File RelativePath=".\src\NNActivationFunctionTanH_Module.f90"/>
 		<File RelativePath=".\src\NNBaseActivationFunction_Module.f90"/>

@@ -1,12 +1,13 @@
-sigmod
-sigmod
+ReLU
+ReLU
+ReLU
 softmax
 
 
 
 !---------------------------------------------------------------------------!
 !*  每层对应的激活函数：                                                   *!
-!*		sigmod tanh ReLU PReLU ELU linear softmax.                         *!
+!*		sigmoid tanh ReLU PReLU ELU linear softmax.                        *!
 !*		应与 NNHiddenLayerNodeCount.parameter 文件中参数数量、             *!
 !*		     NNLearningRate.parameter 文件中参数数量匹配.                  *!
 !---------------------------------------------------------------------------!

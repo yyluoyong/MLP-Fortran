@@ -29,7 +29,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     logical, private :: is_allocate_done = .false.
 	
 	!* 每组样本的数量
-    integer, public :: batch_size = 50
+    integer, public :: batch_size = 100
     
     !* 原始数据训练集样本数量，最大是60000
 	integer, public :: count_train_origin = 60000
@@ -133,7 +133,7 @@ contains   !|
     implicit none
         class(MNISTCase), intent(inout) :: this
 		
-		integer :: train_count = 50000
+		integer :: train_count = 10000
         integer :: round_step, acc_round_counter = 0
         character(len=20) :: round_step_to_str
 		integer :: train_sub_count
@@ -158,9 +158,9 @@ contains   !|
 			batch_generator    => this % batch_generator     &
         )   		
 		
-		allocate( this % acc_validate(2, train_count) )
-		allocate( this % acc_test(2, train_count) )
-        allocate( this % acc_train(2, train_count) )
+		allocate( this % acc_validate(4, train_count) )
+		allocate( this % acc_test(4, train_count) )
+        allocate( this % acc_train(4, train_count) )
 		
 		this % acc_validate = -1
 		this % acc_test     = -1
@@ -190,6 +190,8 @@ contains   !|
                 
                 this % acc_train(1, acc_round_counter) = round_step
 				this % acc_train(2, acc_round_counter) = acc
+				this % acc_train(3, acc_round_counter) = err
+				this % acc_train(4, acc_round_counter) = max_err
                 
 				call calc_cross_entropy_error( y_validate, y_validate_pre, err, max_err )
 				call calc_classify_accuracy( y_validate, y_validate_pre, acc )
@@ -198,6 +200,8 @@ contains   !|
 				
 				this % acc_validate(1, acc_round_counter) = round_step
 				this % acc_validate(2, acc_round_counter) = acc
+				this % acc_validate(3, acc_round_counter) = err
+				this % acc_validate(4, acc_round_counter) = max_err
 				
 				call calc_cross_entropy_error( y_test, y_test_pre, err, max_err )
 				call calc_classify_accuracy( y_test, y_test_pre, acc )
@@ -206,6 +210,8 @@ contains   !|
 				
 				this % acc_test(1, acc_round_counter) = round_step
 				this % acc_test(2, acc_round_counter) = acc
+				this % acc_test(3, acc_round_counter) = err
+				this % acc_test(4, acc_round_counter) = max_err
             end if
 
         end do
@@ -259,8 +265,10 @@ contains   !|
         )   
         
         !----------------------------------------
-        X_train_origin = 2.0 * (X_train_origin / 255.0) - 1.0
-		X_test         = 2.0 * (X_test  / 255.0) - 1.0	
+  !      X_train_origin = 2.0 * (X_train_origin / 255.0) - 1.0
+		!X_test         = 2.0 * (X_test  / 255.0) - 1.0	
+        X_train_origin = X_train_origin / 255.0
+		X_test         = X_test  / 255.0	
             
 		X_train = X_train_origin(:, 1:count_train)
 		y_train = y_train_origin(:, 1:count_train)
@@ -317,11 +325,17 @@ contains   !|
 			if (acc_validate(1, data_count) < 0)  exit
 		end do
 		
-		call output_tecplot_line( file_name,                &
-			'step', acc_validate(1,1:data_count-1),         &
-            'acc_train', acc_train(2,1:data_count-1),       &
-            'acc_validate', acc_validate(2,1:data_count-1), &
-			'acc_test', acc_test(2,1:data_count-1))
+		call output_tecplot_line( file_name,                    &
+			'step', acc_validate(1,1:data_count-1),             &
+            'acc_train', acc_train(2,1:data_count-1),           &
+            'acc_validate', acc_validate(2,1:data_count-1),     &
+			'acc_test', acc_test(2,1:data_count-1) ,            &
+			'err_train', acc_train(3,1:data_count-1),           &
+            'err_validate', acc_validate(3,1:data_count-1),     &
+			'err_test', acc_test(3,1:data_count-1),             &
+			'max_err_train', acc_train(4,1:data_count-1),       &
+            'max_err_validate', acc_validate(4,1:data_count-1), &
+			'max_err_test', acc_test(4,1:data_count-1))         
 		
 		end associate
 		

@@ -28,7 +28,7 @@ end type BaseActivationFunction
 !-------------------	
 abstract interface 
 
-	!* 注：对于sigmod等激活函数，其是单变量函数，
+	!* 注：对于Sigmoid等激活函数，其是单变量函数，
 	!* 而对于softmax函数来说，它的输入是一个向量，
 	!* 是多变量函数，因此函数应接收向量 x.
 

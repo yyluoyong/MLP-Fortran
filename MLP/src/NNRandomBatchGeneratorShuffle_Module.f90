@@ -10,7 +10,10 @@ implicit none
 type, extends(BaseRandomBatch), public :: ShuffleBatchGenerator
     !* 继承自BaseRandomBatch并实现其接口
 
-    logical, private :: is_random_init = .false.
+    logical, private :: is_random_init = .false.	
+	logical, private :: is_shuffle_done = .false.
+	
+	integer, private :: index_lower = 0, index_up = 0
     
 !||||||||||||    
 contains   !|
@@ -34,7 +37,8 @@ contains   !|
        
 
 	!* 获取一个batch
-	subroutine m_get_next_batch( this, X_train, y_train, X_batch, y_batch )   
+	subroutine m_get_next_batch( this, X_train, y_train, X_batch, y_batch ) 
+	use	mod_Tools
 	implicit none
 		class(ShuffleBatchGenerator), intent(inout) :: this
 		real(PRECISION), dimension(:,:), intent(inout) :: X_train
@@ -43,8 +47,13 @@ contains   !|
         real(PRECISION), dimension(:,:), intent(out) :: y_batch
 
 		integer :: X_train_shape(2), X_batch_shape(2)
-        integer :: lower_index
-        
+		integer :: i, j
+		
+		associate (                            &
+            index_lower => this % index_lower, &
+            index_up    => this % index_up     &
+        )   	
+		
         X_train_shape = SHAPE(X_train)
 		X_batch_shape = SHAPE(X_batch)
 		
@@ -53,11 +62,46 @@ contains   !|
             this % is_random_init = .true.
         end if
         
-		call m_shuffle( X_batch_shape(2), X_train, y_train )
+		if (this % is_shuffle_done == .false.) then
+			call m_shuffle( X_train_shape(2), X_train, y_train )
+			this % is_shuffle_done = .true.
+		end if
 		
-        lower_index = X_train_shape(2) - X_batch_shape(2) + 1
-		X_batch = X_train(:, lower_index:X_train_shape(2))
-		y_batch = y_train(:, lower_index:X_train_shape(2))
+		index_lower = index_up + 1
+		index_up    = index_up + X_batch_shape(2)
+		
+		if (index_up <= X_train_shape(2)) then
+		
+			X_batch = X_train(:, index_lower:index_up)
+			y_batch = y_train(:, index_lower:index_up)
+			
+        else if (index_lower <= X_train_shape(2)) then	
+     			
+			j = X_train_shape(2) - index_lower + 1			
+			X_batch(:, 1:j) = X_train(:, index_lower:X_train_shape(2))
+			y_batch(:, 1:j) = y_train(:, index_lower:X_train_shape(2))
+
+			call m_shuffle( X_train_shape(2), X_train, y_train )
+			
+			index_up = index_up - X_train_shape(2)		
+			X_batch(:, j+1:X_batch_shape(2)) = X_train(:, 1:index_up)
+			y_batch(:, j+1:X_batch_shape(2)) = y_train(:, 1:index_up)
+            
+        else if (index_lower > X_train_shape(2)) then	
+            
+            call m_shuffle( X_train_shape(2), X_train, y_train )
+		
+			index_lower = index_lower - X_train_shape(2)
+			index_up    = index_up - X_train_shape(2)
+		
+			X_batch = X_train(:, index_lower:index_up)
+			y_batch = y_train(:, index_lower:index_up)
+			
+		else
+			call LogErr("ShuffleBatchGenerator: SUBROUTINE m_get_next_batch.")
+		end if
+		
+		end associate
 		
 		call LogDebug("ShuffleBatchGenerator: SUBROUTINE m_get_next_batch.")
 		

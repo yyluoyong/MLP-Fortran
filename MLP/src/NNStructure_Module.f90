@@ -502,7 +502,8 @@ contains   !|
 		!* 最后一层公式略有区别，详情见PDF文档.
 		if (layer_index == this % layers_count) then
 			
-			associate (                                                      &                              
+			associate (                                                      &   
+                W           => this % pt_W(layer_index) % W,                 &
                 dW          => this % pt_Layer(layer_index) % dW,            &
                 matrix_part => this % pt_Layer(layer_index) % d_Matrix_part, &
                 Z_pre       => this % pt_Layer(layer_index-1) % Z            &          
@@ -511,10 +512,12 @@ contains   !|
 			!* dW^{k}_{ij} = z^{k-1}_j * E_i * d_Matrix_part
 			do i=1, N 
 				do j=1, M
-					dW(i, j) = Z_pre(j) * matrix_part(i)
+					dW(i, j) = Z_pre(j) * matrix_part(i) + 1.E-4 * W(i,j)
 				end do
-			end do
+            end do
 
+            !dW = dW + 1.E-4 * W
+            
 			end associate
 			
 			return
@@ -523,7 +526,8 @@ contains   !|
 		
 		!---------------------------------
 		!* (2)：其余层
-        associate (                                                      &                              
+        associate (                                                      &  
+            W           => this % pt_W(layer_index) % W,                 &
             dW          => this % pt_Layer(layer_index) % dW,            &
             R           => this % pt_Layer(layer_index) % R,             &
             matrix_part => this % pt_Layer(layer_index) % d_Matrix_part, &
@@ -537,8 +541,11 @@ contains   !|
 			!* 当前层为k，
             !* dW^{k}_{ij} = f'(r^{k}_i) * z^{k-1}_j * E_i * d_Matrix_part
             do j=1, M
-                dW(i, j) = df_to_dr * Z_pre(j) * matrix_part(i)
+                dW(i, j) = df_to_dr * Z_pre(j) * matrix_part(i) + 1.E-4 * W(i,j)
             end do
+            
+            !dW = dW + 1.E-4 * W
+            
         end do
         
         end associate

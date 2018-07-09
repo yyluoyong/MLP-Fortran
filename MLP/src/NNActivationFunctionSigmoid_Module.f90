@@ -1,4 +1,4 @@
-module mod_Sigmod
+module mod_Sigmoid
 use mod_Precision
 use mod_BaseActivationFunction
 implicit none    
@@ -6,36 +6,36 @@ implicit none
 !-------------------
 ! 工作类：激活函数 |
 !-------------------
-type, extends(BaseActivationFunction), public :: Sigmod
+type, extends(BaseActivationFunction), public :: Sigmoid
     !* 继承自BaseActivationFunction并实现其接口
 
 !||||||||||||    
 contains   !|
 !||||||||||||
 
-    procedure, public :: f       => m_fun_sigmod
-    procedure, public :: f_vect  => m_fun_sigmod_vect 
-    procedure, public :: df      => m_df_sigmod
-    procedure, public :: df_vect => m_df_sigmod_vect
+    procedure, public :: f       => m_fun_Sigmoid
+    procedure, public :: f_vect  => m_fun_Sigmoid_vect 
+    procedure, public :: df      => m_df_Sigmoid
+    procedure, public :: df_vect => m_df_Sigmoid_vect
 
-end type Sigmod
+end type Sigmoid
 !===================
 
     !-------------------------
-    private :: m_fun_sigmod
-    private :: m_df_sigmod
-    private :: m_fun_sigmod_vect
-	private :: m_df_sigmod_vect
+    private :: m_fun_Sigmoid
+    private :: m_df_Sigmoid
+    private :: m_fun_Sigmoid_vect
+	private :: m_df_Sigmoid_vect
     !-------------------------
 	
 !||||||||||||    
 contains   !|
 !||||||||||||
 
-    !* sigmod函数
-    subroutine m_fun_sigmod( this, index, x, y )
+    !* Sigmoid函数
+    subroutine m_fun_Sigmoid( this, index, x, y )
     implicit none
-        class(Sigmod), intent(inout) :: this
+        class(Sigmoid), intent(inout) :: this
         integer, intent(in) :: index
 		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: y
@@ -46,10 +46,10 @@ contains   !|
     end subroutine
     !====
     
-    !* 接收向量输入的sigmod函数
-	subroutine m_fun_sigmod_vect( this, x, y )
+    !* 接收向量输入的Sigmoid函数
+	subroutine m_fun_Sigmoid_vect( this, x, y )
 	implicit none
-        class(Sigmod), intent(inout) :: this
+        class(Sigmoid), intent(inout) :: this
 		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), dimension(:), intent(out) :: y
 	
@@ -59,10 +59,10 @@ contains   !|
 	end subroutine
 	!====
     
-	!* sigmod函数的一阶导数
-	subroutine m_df_sigmod( this, index, x, dy )
+	!* Sigmoid函数的一阶导数
+	subroutine m_df_Sigmoid( this, index, x, dy )
 	implicit none
-        class(Sigmod), intent(inout) :: this
+        class(Sigmoid), intent(inout) :: this
 		integer, intent(in) :: index
 		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: dy
@@ -76,10 +76,10 @@ contains   !|
 	end subroutine
 	!====
 	
-	!* 接收向量输入的sigmod函数的一阶导数
-	subroutine m_df_sigmod_vect( this, x, dy )
+	!* 接收向量输入的Sigmoid函数的一阶导数
+	subroutine m_df_Sigmoid_vect( this, x, dy )
 	implicit none
-        class(Sigmod), intent(inout) :: this
+        class(Sigmoid), intent(inout) :: this
 		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), dimension(:), intent(out) :: dy
 	

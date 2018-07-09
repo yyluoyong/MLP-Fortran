@@ -1,6 +1,6 @@
 module mod_ActivationFunctionList
 use mod_BaseActivationFunction
-use mod_Sigmod
+use mod_Sigmoid
 use mod_TanH
 use mod_ReLU
 use mod_PReLU
@@ -25,13 +25,13 @@ type, public :: ActivationFunctionList
     !integer, public :: ACTIVATION_FUNCTION_COUNT = 6  
     
     !* Append：增加激活函数
-    type(Sigmod),  pointer, private :: function_sigmod
-    type(Tan_H),   pointer, private :: function_tanh
-    type(ReLU),    pointer, private :: function_ReLU
-    type(PReLU),   pointer, private :: function_PReLU
-    type(ELU),     pointer, private :: function_ELU
-    type(Linear),  pointer, private :: function_linear
-    type(Softmax), pointer, private :: function_softmax
+    type(Sigmoid),  pointer, private :: function_Sigmoid
+    type(Tan_H),    pointer, private :: function_tanh
+    type(ReLU),     pointer, private :: function_ReLU
+    type(PReLU),    pointer, private :: function_PReLU
+    type(ELU),      pointer, private :: function_ELU
+    type(Linear),   pointer, private :: function_linear
+    type(Softmax),  pointer, private :: function_softmax
 
 !||||||||||||    
 contains   !|
@@ -61,7 +61,7 @@ contains   !|
         if( .not. this % is_init ) then
         
             !* Append：增加激活函数
-            allocate( this % function_sigmod  )
+            allocate( this % function_Sigmoid  )
             allocate( this % function_tanh    )
             allocate( this % function_ReLU    )
             allocate( this % function_PReLU   )
@@ -88,8 +88,8 @@ contains   !|
         
         !* Append：增加激活函数
         select case (TRIM(ADJUSTL(act_fun_name)))
-        case ('sigmod')
-            pt_act_fun => this % function_sigmod
+        case ('sigmoid')
+            pt_act_fun => this % function_Sigmoid
         case ('tanh')
             pt_act_fun => this % function_tanh
         case ('ReLU')
