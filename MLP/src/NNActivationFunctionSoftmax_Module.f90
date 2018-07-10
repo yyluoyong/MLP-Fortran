@@ -40,10 +40,18 @@ contains   !|
 		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), intent(out) :: y
     
-        real(PRECISION) :: sum_exp_x
+		real(PRECISION), dimension(:), allocatable :: x_c
+        real(PRECISION) :: sum_exp_x, max_x
     
-		sum_exp_x = SUM(EXP(x))
-		y = EXP(x(index)) / sum_exp_x 
+		allocate( x_c, SOURCE=x )
+	
+		max_x = MAXVAL(x_c)
+		x_c = x_c - max_x
+	
+		sum_exp_x = SUM(EXP(x_c))
+		y = EXP(x_c(index)) / sum_exp_x 
+		
+		deallocate( x_c )
 	
         return
     end subroutine
@@ -56,11 +64,19 @@ contains   !|
 		real(PRECISION), dimension(:), intent(in) :: x
 		real(PRECISION), dimension(:), intent(out) :: y	
 	
-		real(PRECISION) :: sum_exp_x
-		
-        sum_exp_x = SUM(EXP(x))
-		y = EXP(x) / sum_exp_x 
+		real(PRECISION), dimension(:), allocatable :: x_c
+        real(PRECISION) :: sum_exp_x, max_x
+    
+		allocate( x_c, SOURCE=x )
+	
+		max_x = MAXVAL(x_c)
+		x_c = x_c - max_x
+	
+		sum_exp_x = SUM(EXP(x_c))
+		y = EXP(x_c) / sum_exp_x 
         
+		deallocate( x_c )
+		
 		return
 	end subroutine
 	!====

@@ -88,7 +88,7 @@ type, extends(BaseCalculationCase), public :: MNISTCase
     
     type(CrossEntropyWithSoftmax), pointer, private :: cross_entropy_function
 	
-	type(SimpleBatchGenerator), pointer :: batch_generator
+	type(SimpleBatchGenerator), pointer, private :: batch_generator
     !type(ShuffleBatchGenerator), pointer, private :: batch_generator
 	
 	type(OptimizationAdam), pointer, private :: opt_method
@@ -162,6 +162,7 @@ contains   !|
 		allocate( this % acc_test(4, train_count) )
         allocate( this % acc_train(4, train_count) )
 		
+        this % acc_train    = -1
 		this % acc_validate = -1
 		this % acc_test     = -1
 		
@@ -176,7 +177,7 @@ contains   !|
 			call calc_classify_accuracy( y_batch, y_batch_pre, acc )
             call m_output_train_msg('', round_step, err, max_err, acc )
 			
-            if ((MOD(round_step, 500) == 1) .or. (round_step == train_count)) then
+            if ((MOD(round_step, 100) == 1) .or. (round_step == train_count)) then
 				acc_round_counter = acc_round_counter + 1
 			
                 call my_NNTrain % sim(X_train, y_train, y_train_pre)

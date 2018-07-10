@@ -63,7 +63,7 @@ contains   !|
         end if
         
 		if (this % is_shuffle_done == .false.) then
-			call m_shuffle( X_train_shape(2), X_train, y_train )
+			call m_shuffle( X_train, y_train )
 			this % is_shuffle_done = .true.
 		end if
 		
@@ -81,7 +81,7 @@ contains   !|
 			X_batch(:, 1:j) = X_train(:, index_lower:X_train_shape(2))
 			y_batch(:, 1:j) = y_train(:, index_lower:X_train_shape(2))
 
-			call m_shuffle( X_train_shape(2), X_train, y_train )
+			call m_shuffle( X_train, y_train )
 			
 			index_up = index_up - X_train_shape(2)		
 			X_batch(:, j+1:X_batch_shape(2)) = X_train(:, 1:index_up)
@@ -89,7 +89,7 @@ contains   !|
             
         else if (index_lower > X_train_shape(2)) then	
             
-            call m_shuffle( X_train_shape(2), X_train, y_train )
+            call m_shuffle( X_train, y_train )
 		
 			index_lower = index_lower - X_train_shape(2)
 			index_up    = index_up - X_train_shape(2)
@@ -121,20 +121,19 @@ contains   !|
 
         call RANDOM_NUMBER( tmp )
 
-        ans = FLOOR( tmp * ( M - N + 1 ) + N )
+        ans = FLOOR( tmp * ( N - M + 1 ) + M )
 
         return
     end subroutine m_random_int
     
 	!* Ëæ»ú¡°Ï´ÅÆ¡±
-	subroutine m_shuffle( need_size, X_train, y_train )
+	subroutine m_shuffle( X_train, y_train )
     implicit none
-        integer, intent(in) :: need_size
         real(PRECISION), dimension(:,:), intent(inout) :: X_train
 		real(PRECISION), dimension(:,:), intent(inout) :: y_train
 		
         integer :: X_train_shape(2), y_train_shape(2)
-		integer :: i, j, step_lower
+		integer :: i, j
         real(PRECISION), dimension(:), allocatable :: X_tmp, y_tmp
 
 		X_train_shape = SHAPE(X_train)	
@@ -143,11 +142,10 @@ contains   !|
 		allocate( X_tmp(X_train_shape(1)) )
 		allocate( y_tmp(y_train_shape(1)) )
 		
-        step_lower = X_train_shape(2) - need_size + 1
-        do i=X_train_shape(2), step_lower, -1
+        do i=X_train_shape(2), 2, -1
 		
 			call m_random_int(1, i, j)
-			
+            
 			X_tmp = X_train(:, i)
 			y_tmp = y_train(:, i)
 			

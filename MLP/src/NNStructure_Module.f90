@@ -88,6 +88,8 @@ implicit none
         procedure, private :: get_layer_dTheta => m_get_layer_dTheta
         procedure, private :: get_all_dTheta   => m_get_all_dTheta
 		
+		procedure, private :: print_NN_Structrue => m_print_NN_Structrue
+		
 		procedure, private :: allocate_pointer   => m_allocate_pointer
         procedure, private :: allocate_memory    => m_allocate_memory
         procedure, private :: deallocate_pointer => m_deallocate_pointer
@@ -130,6 +132,8 @@ implicit none
     private :: m_set_loss_function
     
     private :: m_get_all_derivative_variable
+	
+	private :: m_print_NN_Structrue
     !-------------------------
 
 !||||||||||||    
@@ -162,6 +166,8 @@ contains   !|
             
             this % is_init_basic = .true.
             
+			call this % print_NN_Structrue()
+			
             call LogDebug("NNStructure: SUBROUTINE m_init_basic")
         end if
 
@@ -512,7 +518,7 @@ contains   !|
 			!* dW^{k}_{ij} = z^{k-1}_j * E_i * d_Matrix_part
 			do i=1, N 
 				do j=1, M
-					dW(i, j) = Z_pre(j) * matrix_part(i) + 1.E-4 * W(i,j)
+					dW(i, j) = Z_pre(j) * matrix_part(i) !+ 1.E-4 * W(i,j)
 				end do
             end do
 
@@ -541,7 +547,7 @@ contains   !|
 			!* 当前层为k，
             !* dW^{k}_{ij} = f'(r^{k}_i) * z^{k-1}_j * E_i * d_Matrix_part
             do j=1, M
-                dW(i, j) = df_to_dr * Z_pre(j) * matrix_part(i) + 1.E-4 * W(i,j)
+                dW(i, j) = df_to_dr * Z_pre(j) * matrix_part(i) !+ 1.E-4 * W(i,j)
             end do
             
             !dW = dW + 1.E-4 * W
@@ -810,6 +816,31 @@ contains   !|
         return
     end subroutine m_allocate_memory
     !====
+	
+	!* 输出网络结构信息到日志
+	subroutine m_print_NN_Structrue( this )
+	use mod_Tools
+	implicit none
+		class(NNStructure), intent(inout) :: this
+		
+		character(len=15) :: int_to_str, i_to_str
+		integer :: i
+	
+		call int_to_string(this % layers_count, int_to_str)
+		
+		call LogInfo("NNStructure Layers Counts: " // TRIM(ADJUSTL(int_to_str)))
+	
+		do i=0, this % layers_count
+			call int_to_string(i, i_to_str)
+			call int_to_string(this % layers_node_count(i), int_to_str)
+		
+			call LogInfo("Layer " // TRIM(ADJUSTL(i_to_str)) // &
+				" Nodes Counts: " // TRIM(ADJUSTL(int_to_str)))
+		end do
+	
+		return
+	end subroutine m_print_NN_Structrue
+	!====
 	
 	!* 销毁指针 
     subroutine m_deallocate_pointer( this )

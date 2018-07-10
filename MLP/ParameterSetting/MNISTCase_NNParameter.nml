@@ -8,6 +8,6 @@
 !*		accumulation  =>  ¿€ª˝BPÀ„∑®                                       *!
 !---------------------------------------------------------------------------!
 &NNParameter_NameList
-HIDDEN_LAYERS_COUNT = 3
+HIDDEN_LAYERS_COUNT = 1
 BP_ALGORITHM        = 'accumulation'
 /

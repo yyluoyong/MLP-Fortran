@@ -80,7 +80,7 @@ contains   !|
 
         call RANDOM_NUMBER( tmp )
 
-        ans = FLOOR( tmp * ( M - N + 1 ) + N )
+        ans = FLOOR( tmp * ( N - M + 1 ) + M )
 
         return
     end subroutine m_random_int
