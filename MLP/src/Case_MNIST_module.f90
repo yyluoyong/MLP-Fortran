@@ -133,7 +133,7 @@ contains   !|
     implicit none
         class(MNISTCase), intent(inout) :: this
 		
-		integer :: train_count = 10000
+		integer :: train_count = 20000
         integer :: round_step, acc_round_counter = 0
         character(len=20) :: round_step_to_str
 		integer :: train_sub_count

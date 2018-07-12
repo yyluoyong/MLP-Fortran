@@ -518,7 +518,7 @@ contains   !|
 			!* dW^{k}_{ij} = z^{k-1}_j * E_i * d_Matrix_part
 			do i=1, N 
 				do j=1, M
-					dW(i, j) = Z_pre(j) * matrix_part(i) !+ 1.E-4 * W(i,j)
+					dW(i, j) = Z_pre(j) * matrix_part(i) !+ 2.E-5 * W(i,j)
 				end do
             end do
 
@@ -547,7 +547,7 @@ contains   !|
 			!* µ±Ç°²ãÎªk£¬
             !* dW^{k}_{ij} = f'(r^{k}_i) * z^{k-1}_j * E_i * d_Matrix_part
             do j=1, M
-                dW(i, j) = df_to_dr * Z_pre(j) * matrix_part(i) !+ 1.E-4 * W(i,j)
+                dW(i, j) = df_to_dr * Z_pre(j) * matrix_part(i) !+ 2.E-5 * W(i,j)
             end do
             
             !dW = dW + 1.E-4 * W
